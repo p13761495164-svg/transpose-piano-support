@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Transpose Piano is an iPhone and iPad piano tool that helps musicians practice in any key.">
   <title>Transpose Piano</title>
+  <link rel="icon" href="assets/app-icon.png">
+  <link rel="apple-touch-icon" href="assets/app-icon.png">
   <style>
     :root {
       color-scheme: light;
@@ -62,12 +64,9 @@
     .mark {
       width: 34px;
       height: 34px;
-      display: grid;
-      place-items: center;
       border-radius: 8px;
-      color: #fff;
-      background: #111;
-      font-size: 19px;
+      object-fit: cover;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
     }
 
     nav {
@@ -235,7 +234,7 @@
 <body>
   <header>
     <div class="brand">
-      <span class="mark">♪</span>
+      <img class="mark" src="assets/app-icon.png" alt="" aria-hidden="true">
       <span>Transpose Piano</span>
     </div>
     <nav aria-label="Main navigation">
