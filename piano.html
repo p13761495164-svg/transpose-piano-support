@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>移调钢琴</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #000;
+    --side-pad: 16px;
+    --key-top: 16px;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 100vh;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  #topbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    z-index: 30;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+    border-bottom: 1px solid #e5e7eb;
+    background: #fff;
+  }
+
+  #key-selector {
+    flex: 1;
+    min-width: 0;
+    flex-shrink: 0;
+    overflow-x: auto;
+    padding: 12px 16px;
+    scrollbar-width: none;
+    background: #fff;
+  }
+
+  #key-selector::-webkit-scrollbar,
+  #keyboard-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  #key-selector-inner {
+    display: flex;
+    gap: 8px;
+    min-width: max-content;
+  }
+
+  .key-button {
+    min-width: 44px;
+    padding: 7px 15px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 9999px;
+    background: #fff;
+    color: #000;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+
+  .key-button.active {
+    background: #000;
+    color: #fff;
+    border-color: #000;
+  }
+
+  #volume-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 6px 10px 6px 6px;
+    border-left: 1px solid #e5e7eb;
+    background: #fff;
+  }
+
+  #tone-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 6px 5px 6px 8px;
+    background: #fff;
+  }
+
+  #volume-button {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 1.5px solid #d1d5db;
+    border-radius: 50%;
+    background: #fff;
+    color: #000;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  #tone-button {
+    min-width: 42px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 18px;
+    background: #fff;
+    color: #000;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  #volume-button:active,
+  #volume-control.open #volume-button,
+  #tone-button:active,
+  #tone-control.open #tone-button {
+    background: #f0f0f0;
+    border-color: #999;
+  }
+
+  #volume-popover {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 8px;
+    width: 178px;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  }
+
+  #tone-popover {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 4px;
+    width: 152px;
+    max-height: min(356px, calc(100dvh - 92px));
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  }
+
+  #volume-control.open #volume-popover {
+    display: block;
+  }
+
+  #tone-control.open #tone-popover {
+    display: grid;
+    gap: 2px;
+  }
+
+  .tone-option {
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #111;
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .tone-option.active,
+  .tone-option:active {
+    background: #111;
+    color: #fff;
+  }
+
+  #volume-slider {
+    display: block;
+    width: 100%;
+    accent-color: #000;
+    cursor: pointer;
+  }
+
+  #piano-area {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #keyboard-scroll {
+    flex: 1;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    background: #fff;
+    touch-action: none;
+  }
+
+  #keyboard-inner {
+    position: relative;
+    height: 100%;
+    min-height: 200px;
+    padding: var(--key-top) var(--side-pad) 0;
+  }
+
+  .white-key,
+  .black-key {
+    position: absolute;
+    top: var(--key-top);
+    pointer-events: none;
+    transition: background 50ms ease, box-shadow 50ms ease;
+  }
+
+  .white-key {
+    bottom: 0;
+    width: 55px;
+    background: #fff;
+    border: 1.5px solid #000;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+    z-index: 1;
+  }
+
+  .white-key.active {
+    background: #d0d0d0;
+    box-shadow: none;
+  }
+
+  .black-key {
+    width: 34px;
+    height: 60%;
+    background: #000;
+    border: 1.5px solid #000;
+    border-radius: 0 0 5px 5px;
+    z-index: 10;
+  }
+
+  .black-key.active {
+    background: #444;
+  }
+
+  @media (max-width: 560px) {
+    #key-selector {
+      padding: 10px 12px;
+    }
+
+    #key-selector-inner {
+      gap: 6px;
+    }
+
+    .key-button {
+      padding: 7px 12px;
+      font-size: 12px;
+    }
+  }
+
+  @media (orientation: landscape) and (max-height: 520px) {
+    body {
+      --key-top: 4px;
+    }
+
+    #key-selector {
+      padding: 4px 12px 6px;
+    }
+
+    #key-selector-inner {
+      gap: 6px;
+    }
+
+    .key-button {
+      min-width: 42px;
+      padding: 5px 13px;
+      font-size: 12px;
+    }
+
+    #volume-control {
+      padding: 3px 8px 3px 5px;
+    }
+
+    #tone-control {
+      padding: 3px 4px 3px 6px;
+    }
+
+    #volume-button {
+      width: 32px;
+      height: 32px;
+      font-size: 15px;
+    }
+
+    #tone-button {
+      min-width: 40px;
+      height: 32px;
+      padding: 0 7px;
+      font-size: 11px;
+    }
+
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="key-selector">
+      <div id="key-selector-inner"></div>
+    </div>
+    <div id="volume-control">
+      <button id="volume-button" type="button" title="弹奏音量" aria-label="弹奏音量">🔊</button>
+      <div id="volume-popover">
+        <input id="volume-slider" type="range" min="0" max="100" value="100" aria-label="弹奏音量">
+      </div>
+    </div>
+    <div id="tone-control">
+      <button id="tone-button" type="button" title="选择音色" aria-label="选择音色">音色</button>
+      <div id="tone-popover" role="menu" aria-label="音色选择"></div>
+    </div>
+  </div>
+
+  <div id="piano-area">
+    <div id="keyboard-scroll">
+      <div id="keyboard-inner"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
+  const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
+  const START_MIDI = 21;
+  const TOTAL_KEYS = 88;
+  const WHITE_KEY_W = 56;
+  const BLACK_KEY_W = 34;
+  const SIDE_PAD = 16;
+  const DECAY = 3.0;
+  const SCROLL_THRESHOLD = 14;
+
+  const keySelectorInner = document.getElementById("key-selector-inner");
+  const keyboardScroll = document.getElementById("keyboard-scroll");
+  const keyboardInner = document.getElementById("keyboard-inner");
+  const volumeControl = document.getElementById("volume-control");
+  const volumeButton = document.getElementById("volume-button");
+  const volumeSlider = document.getElementById("volume-slider");
+  const toneControl = document.getElementById("tone-control");
+  const toneButton = document.getElementById("tone-button");
+  const tonePopover = document.getElementById("tone-popover");
+
+  const INSTRUMENTS = [
+    { id: "piano", label: "原声钢琴", wave: "triangle", partials: [1, 2, 3, 4.1], levels: [1, 0.34, 0.18, 0.08], attack: 0.006, decay: 3.3, brightness: 3800 },
+    { id: "electric", label: "电钢琴", wave: "sine", partials: [1, 2, 3.01, 4], levels: [1, 0.42, 0.2, 0.1], attack: 0.012, decay: 3.8, brightness: 2600 },
+    { id: "kalimba", label: "卡林巴", wave: "sine", partials: [1, 4.03], levels: [1, 0.3], attack: 0.004, decay: 3, brightness: 5200 },
+    { id: "musicbox", label: "八音盒", wave: "sine", partials: [1, 2, 3, 5.02], levels: [1, 0.22, 0.18, 0.12], attack: 0.002, decay: 2.8, brightness: 7000 },
+    { id: "marimba", label: "马林巴／木琴", wave: "sine", partials: [1, 3.99, 9.02], levels: [1, 0.23, 0.08], attack: 0.003, decay: 1.8, brightness: 3200 },
+    { id: "harp", label: "竖琴", wave: "triangle", partials: [1, 2, 3, 4], levels: [1, 0.25, 0.13, 0.06], attack: 0.01, decay: 4.2, brightness: 4400 },
+    { id: "strings", label: "弦乐合奏", wave: "sawtooth", partials: [1, 1.005, 0.995], levels: [0.5, 0.28, 0.28], attack: 0.18, decay: 4.8, brightness: 1700 },
+    { id: "organ", label: "风琴", wave: "sine", partials: [1, 2, 3, 4], levels: [1, 0.5, 0.28, 0.14], attack: 0.025, decay: 4.6, brightness: 4600 },
+    { id: "pad", label: "合成器 Pad", wave: "sawtooth", partials: [1, 0.5, 2], levels: [0.62, 0.23, 0.14], attack: 0.32, decay: 5.6, brightness: 1050 },
+    { id: "guitar", label: "尼龙吉他", wave: "triangle", partials: [1, 2, 3, 5], levels: [1, 0.3, 0.15, 0.06], attack: 0.004, decay: 3.1, brightness: 3000 },
+  ];
+
+  let selectedKey = 0;
+  let audioCtx = null;
+  let outputGain = null;
+  let volume = 1;
+  let selectedInstrument = "kalimba";
+  let whiteKeys = [];
+  let blackKeys = [];
+
+  const activeNotes = new Set();
+  const oscMap = new Map();
+  const pointerMidi = new Map();
+  const pointerState = new Map();
+
+  function keyTop() {
+    const value = getComputedStyle(document.body).getPropertyValue("--key-top");
+    return Number.parseFloat(value) || 16;
+  }
+
+  function scalePitchClasses() {
+    return MAJOR_SCALE_INTERVALS.map((interval) => (selectedKey + interval) % 12);
+  }
+
+  function buildLayout() {
+    const scaleSet = new Set(scalePitchClasses());
+    const allKeys = [];
+
+    for (let i = 0; i < TOTAL_KEYS; i += 1) {
+      const midi = START_MIDI + i;
+      const pitchClass = midi % 12;
+      allKeys.push({
+        midi,
+        pitchClass,
+        isBlack: !scaleSet.has(pitchClass),
+      });
+    }
+
+    whiteKeys = allKeys.filter((key) => !key.isBlack);
+    blackKeys = allKeys.filter((key) => key.isBlack);
+  }
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContextCtor();
+      outputGain = audioCtx.createGain();
+      outputGain.gain.value = volume;
+      outputGain.connect(audioCtx.destination);
+    }
+
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+  }
+
+  function resumeAudio() {
+    initAudio();
+    if (outputGain && audioCtx) {
+      outputGain.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.01);
+    }
+  }
+
+  function setVolume(value) {
+    volume = Math.max(0, Math.min(1, value));
+    volumeSlider.value = String(Math.round(volume * 100));
+    volumeButton.textContent = volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊";
+
+    if (outputGain && audioCtx) {
+      outputGain.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.01);
+    }
+
+  }
+
+  function stopOscillators(entry) {
+    clearTimeout(entry.tid);
+    entry.oscs.forEach((osc) => {
+      try {
+        osc.stop();
+      } catch (error) {
+        // The oscillator may have already finished naturally.
+      }
+    });
+  }
+
+  function currentInstrument() {
+    return INSTRUMENTS.find((instrument) => instrument.id === selectedInstrument) || INSTRUMENTS[2];
+  }
+
+  function markActive(midi, isActive) {
+    if (isActive) {
+      activeNotes.add(midi);
+    } else {
+      activeNotes.delete(midi);
+    }
+
+    const keyEl = keyboardInner.querySelector('[data-midi="' + midi + '"]');
+    if (keyEl) {
+      keyEl.classList.toggle("active", isActive);
+    }
+  }
+
+  function playNote(midi) {
+    initAudio();
+
+    const previous = oscMap.get(midi);
+    if (previous) {
+      stopOscillators(previous);
+      oscMap.delete(midi);
+    }
+
+    const t = audioCtx.currentTime;
+    const frequency = 440 * Math.pow(2, (midi - 69) / 12);
+
+    const instrument = currentInstrument();
+    const master = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(instrument.brightness, t);
+    filter.Q.value = instrument.id === "kalimba" ? 1.8 : 0.7;
+    master.connect(filter);
+    filter.connect(outputGain);
+    master.gain.setValueAtTime(0.0001, t);
+    master.gain.linearRampToValueAtTime(0.33, t + instrument.attack);
+    master.gain.exponentialRampToValueAtTime(0.0001, t + instrument.decay);
+
+    const oscs = instrument.partials.map((partial, index) => {
+      const osc = audioCtx.createOscillator();
+      const partialGain = audioCtx.createGain();
+      osc.type = instrument.wave;
+      osc.frequency.value = frequency * partial;
+      partialGain.gain.value = instrument.levels[index] || 0.1;
+      osc.connect(partialGain);
+      partialGain.connect(master);
+      osc.start(t);
+      osc.stop(t + instrument.decay + 0.08);
+      return osc;
+    });
+
+    const tid = setTimeout(() => {
+      oscMap.delete(midi);
+      markActive(midi, false);
+    }, (instrument.decay + 0.2) * 1000);
+
+    oscMap.set(midi, { oscs, tid });
+    markActive(midi, true);
+  }
+
+  function stopNote(midi) {
+    markActive(midi, false);
+  }
+
+  function getMidiAtPoint(x, y) {
+    const rect = keyboardScroll.getBoundingClientRect();
+    const top = keyTop();
+    const localX = x - rect.left + keyboardScroll.scrollLeft - SIDE_PAD;
+    const localY = y - rect.top;
+    const innerHeight = rect.height;
+
+    for (let i = 0; i < blackKeys.length; i += 1) {
+      const key = blackKeys[i];
+      const prevWhiteIndex = whiteKeys.findIndex((whiteKey) => whiteKey.midi === key.midi - 1);
+      if (prevWhiteIndex === -1) continue;
+
+      const left = prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - Math.floor(BLACK_KEY_W / 2);
+      const height = innerHeight * 0.6;
+
+      if (
+        localX >= left &&
+        localX <= left + BLACK_KEY_W &&
+        localY >= top &&
+        localY <= top + height
+      ) {
+        return key.midi;
+      }
+    }
+
+    for (let i = 0; i < whiteKeys.length; i += 1) {
+      const left = i * WHITE_KEY_W;
+      if (localX >= left && localX <= left + WHITE_KEY_W - 1) {
+        return whiteKeys[i].midi;
+      }
+    }
+
+    return null;
+  }
+
+  function scrollRootToCenter() {
+    const rootMidi = 60 + ((selectedKey - (60 % 12) + 12) % 12);
+    const rootKey =
+      whiteKeys.find((key) => key.midi === rootMidi) ||
+      whiteKeys.find((key) => key.midi === rootMidi - 12) ||
+      whiteKeys[Math.floor(whiteKeys.length / 2)];
+
+    const index = Math.max(0, whiteKeys.indexOf(rootKey));
+    const keyCenter = SIDE_PAD + index * WHITE_KEY_W + WHITE_KEY_W / 2;
+    keyboardScroll.scrollLeft = Math.max(0, keyCenter - keyboardScroll.clientWidth / 2);
+  }
+
+  function renderKeys() {
+    buildLayout();
+    activeNotes.clear();
+    keyboardInner.innerHTML = "";
+    keyboardInner.style.width = (whiteKeys.length * WHITE_KEY_W + SIDE_PAD * 2) + "px";
+
+    whiteKeys.forEach((key, index) => {
+      const el = document.createElement("div");
+      el.className = "white-key";
+      el.dataset.midi = String(key.midi);
+      el.style.left = (SIDE_PAD + index * WHITE_KEY_W) + "px";
+      keyboardInner.appendChild(el);
+    });
+
+    blackKeys.forEach((key) => {
+      const prevWhiteIndex = whiteKeys.findIndex((whiteKey) => whiteKey.midi === key.midi - 1);
+      if (prevWhiteIndex === -1) return;
+
+      const el = document.createElement("div");
+      el.className = "black-key";
+      el.dataset.midi = String(key.midi);
+      el.style.left = (SIDE_PAD + prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - Math.floor(BLACK_KEY_W / 2)) + "px";
+      keyboardInner.appendChild(el);
+    });
+  }
+
+  function setKey(index) {
+    selectedKey = index;
+
+    Array.from(keySelectorInner.children).forEach((button, buttonIndex) => {
+      button.classList.toggle("active", buttonIndex === selectedKey);
+    });
+
+    renderKeys();
+    requestAnimationFrame(scrollRootToCenter);
+  }
+
+  function renderSelector() {
+    KEY_LABELS.forEach((label, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "key-button";
+      button.textContent = label;
+      button.addEventListener("click", () => setKey(index));
+      keySelectorInner.appendChild(button);
+    });
+  }
+
+  function setInstrument(instrumentId) {
+    selectedInstrument = instrumentId;
+    const instrument = currentInstrument();
+    toneButton.textContent = "音色";
+    toneButton.title = instrument.label;
+    toneButton.setAttribute("aria-label", "当前音色：" + instrument.label);
+    Array.from(tonePopover.children).forEach((button) => {
+      button.classList.toggle("active", button.dataset.instrument === instrument.id);
+    });
+    toneControl.classList.remove("open");
+  }
+
+  function renderToneSelector() {
+    INSTRUMENTS.forEach((instrument) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "tone-option";
+      button.dataset.instrument = instrument.id;
+      button.textContent = instrument.label;
+      button.addEventListener("click", () => setInstrument(instrument.id));
+      tonePopover.appendChild(button);
+    });
+  }
+
+  function onPointerDown(event) {
+    event.preventDefault();
+
+    const midi = getMidiAtPoint(event.clientX, event.clientY);
+    if (midi !== null) {
+      pointerMidi.set(event.pointerId, midi);
+      playNote(midi);
+    }
+
+    pointerState.set(event.pointerId, {
+      startX: event.clientX,
+      startY: event.clientY,
+      startScroll: keyboardScroll.scrollLeft,
+      mode: "playing",
+    });
+  }
+
+  function onPointerMove(event) {
+    const state = pointerState.get(event.pointerId);
+    if (!state) return;
+
+    const dx = event.clientX - state.startX;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(event.clientY - state.startY);
+
+    if (state.mode === "playing" && absDx > SCROLL_THRESHOLD && absDx > absDy * 1.5) {
+      state.mode = "scrolling";
+      const midi = pointerMidi.get(event.pointerId);
+      if (midi !== undefined) {
+        stopNote(midi);
+        pointerMidi.delete(event.pointerId);
+      }
+    }
+
+    if (state.mode === "scrolling") {
+      keyboardScroll.scrollLeft = state.startScroll - dx;
+      return;
+    }
+
+    const midi = getMidiAtPoint(event.clientX, event.clientY);
+    if (midi === null) return;
+
+    const previous = pointerMidi.get(event.pointerId);
+    if (previous !== undefined && midi !== previous) {
+      stopNote(previous);
+      playNote(midi);
+      pointerMidi.set(event.pointerId, midi);
+    }
+  }
+
+  function onPointerUp(event) {
+    const midi = pointerMidi.get(event.pointerId);
+    if (midi !== undefined) {
+      stopNote(midi);
+      pointerMidi.delete(event.pointerId);
+    }
+    pointerState.delete(event.pointerId);
+  }
+
+  function onBeforeUnload() {
+    oscMap.forEach(stopOscillators);
+    oscMap.clear();
+  }
+
+  volumeButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    volumeControl.classList.toggle("open");
+  });
+  volumeSlider.addEventListener("input", (event) => {
+    setVolume(Number(event.target.value) / 100);
+  });
+  toneButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toneControl.classList.toggle("open");
+    volumeControl.classList.remove("open");
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!volumeControl.contains(event.target)) {
+      volumeControl.classList.remove("open");
+    }
+    if (!toneControl.contains(event.target)) {
+      toneControl.classList.remove("open");
+    }
+  });
+  keyboardScroll.addEventListener("pointerdown", onPointerDown);
+  keyboardScroll.addEventListener("pointermove", onPointerMove);
+  keyboardScroll.addEventListener("pointerup", onPointerUp);
+  keyboardScroll.addEventListener("pointercancel", onPointerUp);
+  keyboardScroll.addEventListener("lostpointercapture", onPointerUp);
+  window.addEventListener("beforeunload", onBeforeUnload);
+  window.addEventListener("resize", () => requestAnimationFrame(scrollRootToCenter));
+  window.addEventListener("focus", resumeAudio);
+  window.addEventListener("pageshow", resumeAudio);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) resumeAudio();
+  });
+  window.transposePianoResumeAudio = resumeAudio;
+
+  setVolume(volume);
+  renderSelector();
+  renderToneSelector();
+  setInstrument(selectedInstrument);
+  setKey(0);
+})();
+</script>
+</body>
+</html>
