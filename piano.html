@@ -36,7 +36,7 @@
     display: flex;
     flex-direction: column;
     height: 100dvh;
-    min-height: 100vh;
+    min-height: 0;
     background: #fff;
     overflow: hidden;
   }
@@ -251,23 +251,12 @@
     flex: 0 1 42%;
     min-height: 270px;
     position: relative;
-    padding: 10px 16px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 0;
     background: #111;
   }
 
   #app.video-mode #video-stage {
     display: block;
-    order: 1;
-  }
-
-  #app.video-mode #topbar {
-    order: 2;
-    z-index: 30;
-  }
-
-  #app.video-mode #piano-area {
-    order: 3;
   }
 
   @media (min-width: 768px) and (orientation: portrait) {
@@ -354,6 +343,13 @@
     min-height: 18px;
     margin-top: 7px;
     color: #b42318;
+    font-size: 12px;
+  }
+
+  #video-notice {
+    min-height: 18px;
+    margin-top: 7px;
+    color: #2563eb;
     font-size: 12px;
   }
 
@@ -500,7 +496,6 @@
 
     #video-stage {
       min-height: 200px;
-      padding: 7px 12px;
     }
 
   }
@@ -542,8 +537,9 @@
 <div id="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-title">
   <form class="video-dialog" id="video-form">
     <h2 id="video-title">YouTube 伴奏练习</h2>
-    <p>粘贴一条 YouTube 视频链接，视频会在上方播放，钢琴保持在下方。</p>
+    <p>点击视频按钮后，会自动尝试读取剪贴板中的 YouTube 链接。</p>
     <input id="video-url" type="url" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=..." aria-label="YouTube 视频链接" required>
+    <div id="video-notice" aria-live="polite"></div>
     <div id="video-error" aria-live="polite"></div>
     <div class="video-actions">
       <button id="video-cancel" type="button">取消</button>
@@ -578,6 +574,7 @@
   const videoModal = document.getElementById("video-modal");
   const videoForm = document.getElementById("video-form");
   const videoUrl = document.getElementById("video-url");
+  const videoNotice = document.getElementById("video-notice");
   const videoError = document.getElementById("video-error");
   const videoCancel = document.getElementById("video-cancel");
   const videoClose = document.getElementById("video-close");
@@ -886,10 +883,14 @@
 
   async function openVideoDialog() {
     videoError.textContent = "";
+    videoNotice.textContent = "";
     videoModal.classList.add("open");
     try {
       const clipboardText = await navigator.clipboard.readText();
-      if (clipboardText.trim()) videoUrl.value = clipboardText.trim();
+      if (clipboardText.trim()) {
+        videoUrl.value = clipboardText.trim();
+        videoNotice.textContent = "已从剪贴板填入 YouTube 链接。";
+      }
     } catch (error) {
       // Clipboard access is optional and may be blocked by Safari settings.
     }
