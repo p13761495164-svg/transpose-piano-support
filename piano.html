@@ -598,6 +598,7 @@
   let outputGain = null;
   let volume = 1;
   let selectedInstrument = "kalimba";
+  let clipboardReadPromise = null;
   let whiteKeys = [];
   let blackKeys = [];
 
@@ -881,18 +882,20 @@
     }
   }
 
+  function requestClipboardText() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) return Promise.resolve("");
+    return navigator.clipboard.readText().catch(() => "");
+  }
+
   async function openVideoDialog() {
     videoError.textContent = "";
     videoNotice.textContent = "";
     videoModal.classList.add("open");
-    try {
-      const clipboardText = await navigator.clipboard.readText();
-      if (clipboardText.trim()) {
-        videoUrl.value = clipboardText.trim();
-        videoNotice.textContent = "已从剪贴板填入 YouTube 链接。";
-      }
-    } catch (error) {
-      // Clipboard access is optional and may be blocked by Safari settings.
+    const clipboardText = await (clipboardReadPromise || requestClipboardText());
+    clipboardReadPromise = null;
+    if (clipboardText.trim()) {
+      videoUrl.value = clipboardText.trim();
+      videoNotice.textContent = "已从剪贴板填入 YouTube 链接。";
     }
     requestAnimationFrame(() => videoUrl.focus());
   }
@@ -989,6 +992,9 @@
     event.stopPropagation();
     toneControl.classList.toggle("open");
     volumeControl.classList.remove("open");
+  });
+  videoButton.addEventListener("pointerdown", () => {
+    clipboardReadPromise = requestClipboardText();
   });
   videoButton.addEventListener("click", openVideoDialog);
   videoCancel.addEventListener("click", closeVideoDialog);
