@@ -114,6 +114,14 @@
     background: #fff;
   }
 
+  #video-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 6px 8px 6px 0;
+    background: #fff;
+  }
+
   #volume-button {
     width: 36px;
     height: 36px;
@@ -143,10 +151,25 @@
     cursor: pointer;
   }
 
+  #video-button {
+    min-width: 42px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 18px;
+    background: #fff;
+    color: #000;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
   #volume-button:active,
   #volume-control.open #volume-button,
   #tone-button:active,
-  #tone-control.open #tone-button {
+  #tone-control.open #tone-button,
+  #video-button:active {
     background: #f0f0f0;
     border-color: #999;
   }
@@ -223,6 +246,124 @@
     overflow: hidden;
   }
 
+  #video-stage {
+    display: none;
+    flex: 0 1 42%;
+    min-height: 270px;
+    position: relative;
+    padding: 10px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #111;
+  }
+
+  #app.video-mode #video-stage {
+    display: block;
+  }
+
+  #video-frame {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 0;
+    border-radius: 5px;
+    background: #000;
+  }
+
+  #video-close {
+    position: absolute;
+    top: 16px;
+    right: 22px;
+    z-index: 1;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.62);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  #video-modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    place-items: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.36);
+  }
+
+  #video-modal.open {
+    display: grid;
+  }
+
+  .video-dialog {
+    width: min(560px, 100%);
+    padding: 20px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+  }
+
+  .video-dialog h2 { font-size: 18px; font-weight: 700; }
+
+  .video-dialog p {
+    margin-top: 7px;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  #video-url {
+    width: 100%;
+    margin-top: 16px;
+    padding: 11px 12px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    color: #111;
+    font: inherit;
+    font-size: 15px;
+    outline: none;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  #video-url:focus { border-color: #111; }
+
+  #video-error {
+    min-height: 18px;
+    margin-top: 7px;
+    color: #b42318;
+    font-size: 12px;
+  }
+
+  .video-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .video-actions button {
+    min-width: 76px;
+    padding: 9px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #111;
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .video-actions button[type="submit"] {
+    border-color: #111;
+    background: #111;
+    color: #fff;
+  }
+
   #keyboard-scroll {
     flex: 1;
     overflow-x: scroll;
@@ -290,6 +431,10 @@
     }
   }
 
+  @media (max-width: 767px), (orientation: portrait) {
+    #video-control { display: none; }
+  }
+
   @media (orientation: landscape) and (max-height: 520px) {
     body {
       --key-top: 4px;
@@ -317,6 +462,8 @@
       padding: 3px 4px 3px 6px;
     }
 
+    #video-control { padding: 3px 5px 3px 0; }
+
     #volume-button {
       width: 32px;
       height: 32px;
@@ -328,6 +475,18 @@
       height: 32px;
       padding: 0 7px;
       font-size: 11px;
+    }
+
+    #video-button {
+      min-width: 40px;
+      height: 32px;
+      padding: 0 7px;
+      font-size: 11px;
+    }
+
+    #video-stage {
+      min-height: 200px;
+      padding: 7px 12px;
     }
 
   }
@@ -349,6 +508,14 @@
       <button id="tone-button" type="button" title="选择音色" aria-label="选择音色">音色</button>
       <div id="tone-popover" role="menu" aria-label="音色选择"></div>
     </div>
+    <div id="video-control">
+      <button id="video-button" type="button" title="YouTube 伴奏练习" aria-label="YouTube 伴奏练习">视频</button>
+    </div>
+  </div>
+
+  <div id="video-stage">
+    <button id="video-close" type="button" title="关闭视频模式" aria-label="关闭视频模式">×</button>
+    <iframe id="video-frame" title="YouTube 视频" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </div>
 
   <div id="piano-area">
@@ -356,6 +523,19 @@
       <div id="keyboard-inner"></div>
     </div>
   </div>
+</div>
+
+<div id="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-title">
+  <form class="video-dialog" id="video-form">
+    <h2 id="video-title">YouTube 伴奏练习</h2>
+    <p>粘贴一条 YouTube 视频链接，视频会在上方播放，钢琴保持在下方。</p>
+    <input id="video-url" type="url" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=..." aria-label="YouTube 视频链接" required>
+    <div id="video-error" aria-live="polite"></div>
+    <div class="video-actions">
+      <button id="video-cancel" type="button">取消</button>
+      <button type="submit">打开视频</button>
+    </div>
+  </form>
 </div>
 
 <script>
@@ -379,6 +559,15 @@
   const toneControl = document.getElementById("tone-control");
   const toneButton = document.getElementById("tone-button");
   const tonePopover = document.getElementById("tone-popover");
+  const app = document.getElementById("app");
+  const videoButton = document.getElementById("video-button");
+  const videoModal = document.getElementById("video-modal");
+  const videoForm = document.getElementById("video-form");
+  const videoUrl = document.getElementById("video-url");
+  const videoError = document.getElementById("video-error");
+  const videoCancel = document.getElementById("video-cancel");
+  const videoClose = document.getElementById("video-close");
+  const videoFrame = document.getElementById("video-frame");
 
   const INSTRUMENTS = [
     { id: "piano", label: "原声钢琴", wave: "triangle", partials: [1, 2, 3, 4.1], levels: [1, 0.34, 0.18, 0.08], attack: 0.006, decay: 3.3, brightness: 3800 },
@@ -662,6 +851,48 @@
     });
   }
 
+  function youtubeVideoId(value) {
+    try {
+      const url = new URL(value.trim());
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
+      let id = "";
+
+      if (host === "youtu.be") {
+        id = url.pathname.split("/").filter(Boolean)[0] || "";
+      } else if (host === "youtube.com" || host.endsWith(".youtube.com")) {
+        if (url.pathname === "/watch") id = url.searchParams.get("v") || "";
+        else if (/^\/(embed|shorts|live)\//.test(url.pathname)) id = url.pathname.split("/")[2] || "";
+      }
+
+      return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function openVideoDialog() {
+    videoError.textContent = "";
+    videoModal.classList.add("open");
+    requestAnimationFrame(() => videoUrl.focus());
+  }
+
+  function closeVideoDialog() {
+    videoModal.classList.remove("open");
+  }
+
+  function loadYouTubeVideo(videoId) {
+    videoFrame.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(videoId) + "?playsinline=1&rel=0";
+    app.classList.add("video-mode");
+    closeVideoDialog();
+    requestAnimationFrame(scrollRootToCenter);
+  }
+
+  function closeVideoMode() {
+    videoFrame.src = "about:blank";
+    app.classList.remove("video-mode");
+    requestAnimationFrame(scrollRootToCenter);
+  }
+
   function onPointerDown(event) {
     event.preventDefault();
 
@@ -737,6 +968,21 @@
     event.stopPropagation();
     toneControl.classList.toggle("open");
     volumeControl.classList.remove("open");
+  });
+  videoButton.addEventListener("click", openVideoDialog);
+  videoCancel.addEventListener("click", closeVideoDialog);
+  videoClose.addEventListener("click", closeVideoMode);
+  videoModal.addEventListener("pointerdown", (event) => {
+    if (event.target === videoModal) closeVideoDialog();
+  });
+  videoForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const videoId = youtubeVideoId(videoUrl.value);
+    if (!videoId) {
+      videoError.textContent = "请输入有效的 YouTube 视频链接。";
+      return;
+    }
+    loadYouTubeVideo(videoId);
   });
   document.addEventListener("pointerdown", (event) => {
     if (!volumeControl.contains(event.target)) {
