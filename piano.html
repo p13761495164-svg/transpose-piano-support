@@ -635,6 +635,7 @@
   const oscMap = new Map();
   const pointerMidi = new Map();
   const pointerState = new Map();
+  let audioRecoveryTimer = null;
 
   function keyTop() {
     const value = getComputedStyle(document.body).getPropertyValue("--key-top");
@@ -663,24 +664,88 @@
     blackKeys = allKeys.filter((key) => key.isBlack);
   }
 
-  function initAudio() {
-    if (!audioCtx) {
+  function attachAudioStateHandler() {
+    if (!audioCtx) return;
+    audioCtx.onstatechange = () => {
+      if (audioCtx && audioCtx.state === "interrupted") {
+        scheduleAudioRecovery();
+      }
+    };
+  }
+
+  function resetAudioContext() {
+    oscMap.forEach(stopOscillators);
+    oscMap.clear();
+    accompanimentEntries.forEach((entry) => {
+      entry.oscs.forEach((osc) => {
+        try {
+          osc.stop();
+        } catch (error) {
+          // Scheduled oscillator may already be stopped.
+        }
+      });
+    });
+    accompanimentEntries = [];
+    if (audioCtx && audioCtx.state !== "closed" && audioCtx.close) {
+      try {
+        audioCtx.close().catch(() => {});
+      } catch (error) {
+        // Some iOS audio states do not allow closing cleanly.
+      }
+    }
+    audioCtx = null;
+    outputGain = null;
+  }
+
+  function initAudio(forceNew = false) {
+    if (forceNew) {
+      resetAudioContext();
+    }
+
+    if (!audioCtx || audioCtx.state === "closed") {
       const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
       audioCtx = new AudioContextCtor();
       outputGain = audioCtx.createGain();
       outputGain.gain.value = volume;
       outputGain.connect(audioCtx.destination);
+      attachAudioStateHandler();
     }
 
-    if (audioCtx.state === "suspended") {
-      audioCtx.resume();
+    if (audioCtx.state !== "running" && audioCtx.resume) {
+      audioCtx.resume().catch(() => {});
     }
   }
 
-  function resumeAudio() {
+  function scheduleAudioRecovery() {
+    window.clearTimeout(audioRecoveryTimer);
+    audioRecoveryTimer = window.setTimeout(() => {
+      resumeAudio(true);
+    }, 240);
+  }
+
+  function resumeAudio(allowRebuild = false) {
     initAudio();
-    if (outputGain && audioCtx) {
+    if (outputGain && audioCtx && typeof audioCtx.currentTime === "number") {
       outputGain.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.01);
+    }
+    if (allowRebuild && audioCtx && audioCtx.state !== "running") {
+      window.setTimeout(() => {
+        if (audioCtx && audioCtx.state !== "running") {
+          initAudio(true);
+        }
+      }, 180);
+    }
+  }
+
+  function ensureAudioForPlayback() {
+    if (audioCtx && (audioCtx.state === "interrupted" || audioCtx.state === "closed")) {
+      initAudio(true);
+    } else {
+      initAudio();
+    }
+
+    if (audioCtx && audioCtx.state !== "running") {
+      initAudio(true);
     }
   }
 
@@ -713,7 +778,7 @@
   }
 
   function playNote(midi) {
-    initAudio();
+    ensureAudioForPlayback();
 
     const previous = oscMap.get(midi);
     if (previous) {
@@ -763,7 +828,7 @@
   }
 
   function playScheduledNote(midi, startTime) {
-    initAudio();
+    ensureAudioForPlayback();
 
     const frequency = 440 * Math.pow(2, (midi - 69) / 12);
     const instrument = currentInstrument();
@@ -795,7 +860,7 @@
   }
 
   function playClick(startTime, isDownbeat) {
-    initAudio();
+    ensureAudioForPlayback();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = "square";
@@ -1021,7 +1086,7 @@
 
   function startAccompaniment(notes, bpm, isBroken) {
     stopAccompaniment();
-    initAudio();
+    ensureAudioForPlayback();
 
     const beatSeconds = 60 / bpm;
     const now = audioCtx.currentTime + 0.08;
@@ -1238,11 +1303,14 @@
   keyboardScroll.addEventListener("lostpointercapture", onPointerUp);
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("resize", () => requestAnimationFrame(scrollRootToCenter));
-  window.addEventListener("focus", resumeAudio);
-  window.addEventListener("pageshow", resumeAudio);
+  window.addEventListener("focus", () => resumeAudio(true));
+  window.addEventListener("pageshow", () => resumeAudio(true));
+  window.addEventListener("pagehide", stopAccompaniment);
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) resumeAudio();
+    if (!document.hidden) resumeAudio(true);
   });
+  document.addEventListener("pointerdown", () => resumeAudio(true), { capture: true });
+  document.addEventListener("touchend", () => resumeAudio(true), { capture: true });
   window.transposePianoResumeAudio = resumeAudio;
 
   renderSelector();
