@@ -537,7 +537,7 @@
 <div id="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-title">
   <form class="video-dialog" id="video-form">
     <h2 id="video-title">YouTube 伴奏练习</h2>
-    <p>点击视频按钮后，会自动尝试读取剪贴板中的 YouTube 链接。</p>
+    <p>如果剪贴板里不是有效的 YouTube 链接，请在这里输入视频 URL。</p>
     <input id="video-url" type="url" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=..." aria-label="YouTube 视频链接" required>
     <div id="video-notice" aria-live="polite"></div>
     <div id="video-error" aria-live="polite"></div>
@@ -887,17 +887,29 @@
     return navigator.clipboard.readText().catch(() => "");
   }
 
-  async function openVideoDialog() {
+  function openVideoDialog(message = "") {
+    videoError.textContent = "";
+    videoNotice.textContent = message;
+    videoModal.classList.add("open");
+    requestAnimationFrame(() => videoUrl.focus());
+  }
+
+  async function openVideoFromClipboard() {
     videoError.textContent = "";
     videoNotice.textContent = "";
-    videoModal.classList.add("open");
     const clipboardText = await (clipboardReadPromise || requestClipboardText());
     clipboardReadPromise = null;
-    if (clipboardText.trim()) {
-      videoUrl.value = clipboardText.trim();
-      videoNotice.textContent = "已从剪贴板填入 YouTube 链接。";
+    const trimmedText = clipboardText.trim();
+    const videoId = youtubeVideoId(trimmedText);
+
+    if (videoId) {
+      videoUrl.value = trimmedText;
+      loadYouTubeVideo(videoId);
+      return;
     }
-    requestAnimationFrame(() => videoUrl.focus());
+
+    videoUrl.value = trimmedText;
+    openVideoDialog(trimmedText ? "剪贴板内容不是有效的 YouTube 链接，请确认后打开。" : "无法读取剪贴板，请输入 YouTube 链接。");
   }
 
   function closeVideoDialog() {
@@ -996,7 +1008,7 @@
   videoButton.addEventListener("pointerdown", () => {
     clipboardReadPromise = requestClipboardText();
   });
-  videoButton.addEventListener("click", openVideoDialog);
+  videoButton.addEventListener("click", openVideoFromClipboard);
   videoCancel.addEventListener("click", closeVideoDialog);
   videoClose.addEventListener("click", closeVideoMode);
   videoModal.addEventListener("pointerdown", (event) => {
