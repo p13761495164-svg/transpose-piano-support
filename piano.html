@@ -328,6 +328,22 @@
     accent-color: #000;
   }
 
+  .pattern-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    color: #111;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .pattern-row input {
+    width: 18px;
+    height: 18px;
+    accent-color: #111;
+  }
+
   #video-error,
   #accompaniment-error {
     min-height: 18px;
@@ -534,13 +550,17 @@
 <div id="accompaniment-modal" role="dialog" aria-modal="true" aria-labelledby="accompaniment-title">
   <form class="accompaniment-dialog" id="accompaniment-form">
     <h2 id="accompaniment-title">单音伴奏</h2>
-    <p>输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；伴奏会低八度演奏，并使用琴键同样的音色。</p>
+    <p>输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；选中分解后，1 的 2 拍会演奏 15、1-。</p>
     <textarea id="note-text" autocomplete="off" spellcheck="false" aria-label="单音输入">4 5 3 6 4 5 6 -</textarea>
     <div class="tempo-row">
       <span>速度</span>
       <input id="tempo-slider" type="range" min="40" max="180" value="70" aria-label="每分钟拍数">
       <span id="tempo-value">70 BPM</span>
     </div>
+    <label class="pattern-row">
+      <input id="broken-toggle" type="checkbox">
+      <span>分解</span>
+    </label>
     <div id="accompaniment-notice" aria-live="polite"></div>
     <div id="accompaniment-error" aria-live="polite"></div>
     <div class="accompaniment-actions">
@@ -575,6 +595,7 @@
   const noteText = document.getElementById("note-text");
   const tempoSlider = document.getElementById("tempo-slider");
   const tempoValue = document.getElementById("tempo-value");
+  const brokenToggle = document.getElementById("broken-toggle");
   const accompanimentNotice = document.getElementById("accompaniment-notice");
   const accompanimentError = document.getElementById("accompaniment-error");
   const app = document.getElementById("app");
@@ -952,7 +973,7 @@
     accompanimentEntries = [];
   }
 
-  function startAccompaniment(notes, bpm) {
+  function startAccompaniment(notes, bpm, isBroken) {
     stopAccompaniment();
     initAudio();
 
@@ -969,12 +990,18 @@
       const startTime = melodyStart + index * beatSeconds * 2;
       if (item.note.midi === null) return;
 
-      const oscs = playScheduledNote(item.note.midi, startTime);
+      const oscs = isBroken
+        ? [
+            ...playScheduledNote(item.note.midi, startTime),
+            ...playScheduledNote(item.note.midi + 7, startTime),
+            ...playScheduledNote(item.note.midi, startTime + beatSeconds),
+          ]
+        : playScheduledNote(item.note.midi, startTime);
       entries.push({ oscs });
     });
 
     accompanimentEntries = entries;
-    accompanimentNotice.textContent = "准备 4 拍后开始单音伴奏。";
+    accompanimentNotice.textContent = isBroken ? "准备 4 拍后开始分解伴奏。" : "准备 4 拍后开始单音伴奏。";
   }
 
   function openAccompanimentDialog() {
@@ -1137,7 +1164,7 @@
     }
 
     accompanimentError.textContent = "";
-    startAccompaniment(parsed, Number(tempoSlider.value));
+    startAccompaniment(parsed, Number(tempoSlider.value), brokenToggle.checked);
     closeAccompanimentDialog();
   });
   videoButton.addEventListener("click", openVideoDialog);
