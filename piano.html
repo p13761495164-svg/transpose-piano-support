@@ -550,7 +550,7 @@
 <div id="accompaniment-modal" role="dialog" aria-modal="true" aria-labelledby="accompaniment-title">
   <form class="accompaniment-dialog" id="accompaniment-form">
     <h2 id="accompaniment-title">单音伴奏</h2>
-    <p>输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；选中分解后，1 的 2 拍会依次演奏 1、5、高音1、休止。</p>
+    <p>输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；分解时，6 - 会演奏 6、3、高音6、7、高音1。</p>
     <textarea id="note-text" autocomplete="off" spellcheck="false" aria-label="单音输入">4 5 3 6 4 5 6 -</textarea>
     <div class="tempo-row">
       <span>速度</span>
@@ -948,8 +948,54 @@
 
     return {
       label: String(degree) + accidental,
+      degree,
       midi: midiForPitchClass(pitchClass, 48),
     };
+  }
+
+  function degreeAfter(degree, steps) {
+    return ((degree - 1 + steps) % 7) + 1;
+  }
+
+  function midiForDegreeAbove(degree, afterMidi) {
+    const pitchClass = (selectedKey + MAJOR_SCALE_INTERVALS[degree - 1]) % 12;
+    let midi = midiForPitchClass(pitchClass, 48);
+    while (midi <= afterMidi) midi += 12;
+    return midi;
+  }
+
+  function brokenPattern(item, nextItem) {
+    if (!nextItem || !nextItem.note || nextItem.note.midi !== null) {
+      return [
+        { midi: item.note.midi, step: 0 },
+        { midi: item.note.midi + 7, step: 1 },
+        { midi: item.note.midi + 12, step: 2 },
+      ];
+    }
+
+    const root = item.note.midi;
+    const fifth = root + 7;
+    const octave = root + 12;
+
+    if (item.note.degree === 3) {
+      const degreeFive = midiForDegreeAbove(5, octave);
+      return [
+        { midi: root, step: 0 },
+        { midi: fifth, step: 1 },
+        { midi: octave, step: 2 },
+        { midi: degreeFive, step: 3 },
+        { midi: midiForDegreeAbove(7, degreeFive), step: 4 },
+      ];
+    }
+
+    const nextDegreeMidi = midiForDegreeAbove(degreeAfter(item.note.degree, 1), octave);
+    return [
+      { midi: root, step: 0 },
+      { midi: fifth, step: 1 },
+      { midi: octave, step: 2 },
+      { midi: nextDegreeMidi, step: 3 },
+      { midi: midiForDegreeAbove(degreeAfter(item.note.degree, 2), nextDegreeMidi), step: 4 },
+    ];
   }
 
   function parseMelody(value) {
@@ -991,11 +1037,9 @@
       if (item.note.midi === null) return;
 
       const oscs = isBroken
-        ? [
-            ...playScheduledNote(item.note.midi, startTime),
-            ...playScheduledNote(item.note.midi + 7, startTime + beatSeconds / 2),
-            ...playScheduledNote(item.note.midi + 12, startTime + beatSeconds),
-          ]
+        ? brokenPattern(item, notes[index + 1]).flatMap((note) => (
+            playScheduledNote(note.midi, startTime + note.step * beatSeconds / 2)
+          ))
         : playScheduledNote(item.note.midi, startTime);
       entries.push({ oscs });
     });
