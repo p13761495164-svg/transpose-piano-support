@@ -95,16 +95,6 @@
     border-color: #000;
   }
 
-  #volume-control {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    position: relative;
-    padding: 6px 10px 6px 6px;
-    border-left: 1px solid #e5e7eb;
-    background: #fff;
-  }
-
   #tone-control {
     flex-shrink: 0;
     display: flex;
@@ -122,21 +112,16 @@
     background: #fff;
   }
 
-  #volume-button {
-    width: 36px;
-    height: 36px;
-    display: grid;
-    place-items: center;
-    border: 1.5px solid #d1d5db;
-    border-radius: 50%;
+  #accompaniment-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 6px 8px 6px 0;
     background: #fff;
-    color: #000;
-    font-size: 17px;
-    line-height: 1;
-    cursor: pointer;
   }
 
-  #tone-button {
+  #tone-button,
+  #accompaniment-button {
     min-width: 42px;
     height: 36px;
     padding: 0 8px;
@@ -165,26 +150,12 @@
     cursor: pointer;
   }
 
-  #volume-button:active,
-  #volume-control.open #volume-button,
   #tone-button:active,
   #tone-control.open #tone-button,
+  #accompaniment-button:active,
   #video-button:active {
     background: #f0f0f0;
     border-color: #999;
-  }
-
-  #volume-popover {
-    display: none;
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 8px;
-    width: 178px;
-    padding: 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
   }
 
   #tone-popover {
@@ -200,10 +171,6 @@
     border-radius: 8px;
     background: #fff;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
-  }
-
-  #volume-control.open #volume-popover {
-    display: block;
   }
 
   #tone-control.open #tone-popover {
@@ -228,13 +195,6 @@
   .tone-option:active {
     background: #111;
     color: #fff;
-  }
-
-  #volume-slider {
-    display: block;
-    width: 100%;
-    accent-color: #000;
-    cursor: pointer;
   }
 
   #piano-area {
@@ -292,7 +252,8 @@
     cursor: pointer;
   }
 
-  #video-modal {
+  #video-modal,
+  #accompaniment-modal {
     display: none;
     position: fixed;
     z-index: 100;
@@ -302,11 +263,13 @@
     background: rgba(0, 0, 0, 0.36);
   }
 
-  #video-modal.open {
+  #video-modal.open,
+  #accompaniment-modal.open {
     display: grid;
   }
 
-  .video-dialog {
+  .video-dialog,
+  .accompaniment-dialog {
     width: min(560px, 100%);
     padding: 20px;
     border-radius: 8px;
@@ -314,16 +277,19 @@
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
   }
 
-  .video-dialog h2 { font-size: 18px; font-weight: 700; }
+  .video-dialog h2,
+  .accompaniment-dialog h2 { font-size: 18px; font-weight: 700; }
 
-  .video-dialog p {
+  .video-dialog p,
+  .accompaniment-dialog p {
     margin-top: 7px;
     color: #6b7280;
     font-size: 13px;
     line-height: 1.45;
   }
 
-  #video-url {
+  #video-url,
+  #chord-text {
     width: 100%;
     margin-top: 16px;
     padding: 11px 12px;
@@ -337,30 +303,57 @@
     user-select: text;
   }
 
-  #video-url:focus { border-color: #111; }
+  #chord-text {
+    min-height: 96px;
+    resize: vertical;
+    line-height: 1.45;
+  }
 
-  #video-error {
+  #video-url:focus,
+  #chord-text:focus { border-color: #111; }
+
+  .tempo-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+    color: #111;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  #tempo-slider {
+    width: 100%;
+    accent-color: #000;
+  }
+
+  #video-error,
+  #accompaniment-error {
     min-height: 18px;
     margin-top: 7px;
     color: #b42318;
     font-size: 12px;
   }
 
-  #video-notice {
+  #video-notice,
+  #accompaniment-notice {
     min-height: 18px;
     margin-top: 7px;
     color: #2563eb;
     font-size: 12px;
   }
 
-  .video-actions {
+  .video-actions,
+  .accompaniment-actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
     margin-top: 12px;
   }
 
-  .video-actions button {
+  .video-actions button,
+  .accompaniment-actions button {
     min-width: 76px;
     padding: 9px 12px;
     border: 1px solid #d1d5db;
@@ -372,7 +365,8 @@
     cursor: pointer;
   }
 
-  .video-actions button[type="submit"] {
+  .video-actions button[type="submit"],
+  .accompaniment-actions button[type="submit"] {
     border-color: #111;
     background: #111;
     color: #fff;
@@ -464,23 +458,15 @@
       font-size: 12px;
     }
 
-    #volume-control {
-      padding: 3px 8px 3px 5px;
-    }
-
     #tone-control {
       padding: 3px 4px 3px 6px;
     }
 
+    #accompaniment-control,
     #video-control { padding: 3px 5px 3px 0; }
 
-    #volume-button {
-      width: 32px;
-      height: 32px;
-      font-size: 15px;
-    }
-
-    #tone-button {
+    #tone-button,
+    #accompaniment-button {
       min-width: 40px;
       height: 32px;
       padding: 0 7px;
@@ -507,15 +493,12 @@
     <div id="key-selector">
       <div id="key-selector-inner"></div>
     </div>
-    <div id="volume-control">
-      <button id="volume-button" type="button" title="弹奏音量" aria-label="弹奏音量">🔊</button>
-      <div id="volume-popover">
-        <input id="volume-slider" type="range" min="0" max="100" value="100" aria-label="弹奏音量">
-      </div>
-    </div>
     <div id="tone-control">
       <button id="tone-button" type="button" title="选择音色" aria-label="选择音色">音色</button>
       <div id="tone-popover" role="menu" aria-label="音色选择"></div>
+    </div>
+    <div id="accompaniment-control">
+      <button id="accompaniment-button" type="button" title="和弦伴奏" aria-label="和弦伴奏">伴奏</button>
     </div>
     <div id="video-control">
       <button id="video-button" type="button" title="YouTube 伴奏练习" aria-label="YouTube 伴奏练习">视频</button>
@@ -548,6 +531,25 @@
   </form>
 </div>
 
+<div id="accompaniment-modal" role="dialog" aria-modal="true" aria-labelledby="accompaniment-title">
+  <form class="accompaniment-dialog" id="accompaniment-form">
+    <h2 id="accompaniment-title">和弦伴奏</h2>
+    <p>输入调内级数和弦。默认 3、6 会按小三和弦处理，调外或特殊性质可写成 4m、5m、3M。</p>
+    <textarea id="chord-text" autocomplete="off" spellcheck="false" aria-label="和弦输入">4 5 3 6 4 5 6 -</textarea>
+    <div class="tempo-row">
+      <span>速度</span>
+      <input id="tempo-slider" type="range" min="40" max="180" value="70" aria-label="每分钟拍数">
+      <span id="tempo-value">70 BPM</span>
+    </div>
+    <div id="accompaniment-notice" aria-live="polite"></div>
+    <div id="accompaniment-error" aria-live="polite"></div>
+    <div class="accompaniment-actions">
+      <button id="accompaniment-cancel" type="button">取消</button>
+      <button type="submit">开始</button>
+    </div>
+  </form>
+</div>
+
 <script>
 (() => {
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
@@ -563,12 +565,18 @@
   const keySelectorInner = document.getElementById("key-selector-inner");
   const keyboardScroll = document.getElementById("keyboard-scroll");
   const keyboardInner = document.getElementById("keyboard-inner");
-  const volumeControl = document.getElementById("volume-control");
-  const volumeButton = document.getElementById("volume-button");
-  const volumeSlider = document.getElementById("volume-slider");
   const toneControl = document.getElementById("tone-control");
   const toneButton = document.getElementById("tone-button");
   const tonePopover = document.getElementById("tone-popover");
+  const accompanimentButton = document.getElementById("accompaniment-button");
+  const accompanimentModal = document.getElementById("accompaniment-modal");
+  const accompanimentForm = document.getElementById("accompaniment-form");
+  const accompanimentCancel = document.getElementById("accompaniment-cancel");
+  const chordText = document.getElementById("chord-text");
+  const tempoSlider = document.getElementById("tempo-slider");
+  const tempoValue = document.getElementById("tempo-value");
+  const accompanimentNotice = document.getElementById("accompaniment-notice");
+  const accompanimentError = document.getElementById("accompaniment-error");
   const app = document.getElementById("app");
   const videoButton = document.getElementById("video-button");
   const videoModal = document.getElementById("video-modal");
@@ -600,6 +608,7 @@
   let selectedInstrument = "kalimba";
   let whiteKeys = [];
   let blackKeys = [];
+  let accompanimentEntries = [];
 
   const activeNotes = new Set();
   const oscMap = new Map();
@@ -652,17 +661,6 @@
     if (outputGain && audioCtx) {
       outputGain.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.01);
     }
-  }
-
-  function setVolume(value) {
-    volume = Math.max(0, Math.min(1, value));
-    volumeSlider.value = String(Math.round(volume * 100));
-    volumeButton.textContent = volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊";
-
-    if (outputGain && audioCtx) {
-      outputGain.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.01);
-    }
-
   }
 
   function stopOscillators(entry) {
@@ -737,6 +735,59 @@
 
     oscMap.set(midi, { oscs, tid });
     markActive(midi, true);
+  }
+
+  function midiForPitchClass(pitchClass, baseMidi = 48) {
+    return baseMidi + ((pitchClass - (baseMidi % 12) + 12) % 12);
+  }
+
+  function playScheduledNote(midi, startTime, duration, gainScale = 0.72) {
+    initAudio();
+
+    const frequency = 440 * Math.pow(2, (midi - 69) / 12);
+    const instrument = currentInstrument();
+    const master = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    const releaseTime = Math.max(0.08, Math.min(duration * 0.9, instrument.decay));
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(instrument.brightness, startTime);
+    filter.Q.value = instrument.id === "kalimba" ? 1.8 : 0.7;
+    master.connect(filter);
+    filter.connect(outputGain);
+    master.gain.setValueAtTime(0.0001, startTime);
+    master.gain.linearRampToValueAtTime(0.22 * gainScale, startTime + instrument.attack);
+    master.gain.exponentialRampToValueAtTime(0.0001, startTime + releaseTime);
+
+    const oscs = instrument.partials.map((partial, index) => {
+      const osc = audioCtx.createOscillator();
+      const partialGain = audioCtx.createGain();
+      osc.type = instrument.wave;
+      osc.frequency.value = frequency * partial;
+      partialGain.gain.value = instrument.levels[index] || 0.1;
+      osc.connect(partialGain);
+      partialGain.connect(master);
+      osc.start(startTime);
+      osc.stop(startTime + releaseTime + 0.08);
+      return osc;
+    });
+
+    return oscs;
+  }
+
+  function playClick(startTime, isDownbeat) {
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(isDownbeat ? 1046.5 : 784, startTime);
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.linearRampToValueAtTime(isDownbeat ? 0.22 : 0.15, startTime + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.12);
+    osc.connect(gain);
+    gain.connect(outputGain);
+    osc.start(startTime);
+    osc.stop(startTime + 0.14);
+    return [osc];
   }
 
   function stopNote(midi) {
@@ -862,6 +913,102 @@
     });
   }
 
+  function chordQualityForDegree(degree, suffix) {
+    const normalized = suffix.toLowerCase();
+    if (suffix === "M" || normalized === "maj") return "maj";
+    if (normalized === "m" || normalized === "min" || normalized === "-") return "min";
+    if (normalized === "dim" || normalized === "o" || normalized === "°") return "dim";
+    if (normalized === "aug" || normalized === "+") return "aug";
+
+    return ["maj", "min", "min", "maj", "maj", "min", "dim"][degree - 1];
+  }
+
+  function chordIntervals(quality) {
+    if (quality === "min") return [0, 3, 7];
+    if (quality === "dim") return [0, 3, 6];
+    if (quality === "aug") return [0, 4, 8];
+    return [0, 4, 7];
+  }
+
+  function parseChordToken(token) {
+    if (token === "-") {
+      return { label: "-", notes: [] };
+    }
+
+    const match = token.match(/^([1-7])([A-Za-z°+_-]*)$/);
+    if (!match) return null;
+
+    const degree = Number(match[1]);
+    const suffix = match[2] || "";
+    const quality = chordQualityForDegree(degree, suffix);
+    const rootPitchClass = (selectedKey + MAJOR_SCALE_INTERVALS[degree - 1]) % 12;
+    const rootMidi = midiForPitchClass(rootPitchClass);
+    const notes = chordIntervals(quality).map((interval) => rootMidi + interval);
+    const labelSuffix = quality === "maj" ? "" : quality === "min" ? "m" : quality;
+
+    return {
+      label: String(degree) + labelSuffix,
+      notes,
+    };
+  }
+
+  function parseChordProgression(value) {
+    return value
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => ({ token, chord: parseChordToken(token) }));
+  }
+
+  function stopAccompaniment() {
+    accompanimentEntries.forEach((entry) => {
+      entry.oscs.forEach((osc) => {
+        try {
+          osc.stop();
+        } catch (error) {
+          // Scheduled oscillator may already be stopped.
+        }
+      });
+    });
+    accompanimentEntries = [];
+  }
+
+  function startAccompaniment(chords, bpm) {
+    stopAccompaniment();
+    initAudio();
+
+    const beatSeconds = 60 / bpm;
+    const now = audioCtx.currentTime + 0.08;
+    const entries = [];
+
+    for (let beat = 0; beat < 4; beat += 1) {
+      entries.push({ oscs: playClick(now + beat * beatSeconds, beat === 0) });
+    }
+
+    const chordStart = now + 4 * beatSeconds;
+    chords.forEach((item, index) => {
+      const startTime = chordStart + index * beatSeconds * 2;
+      if (!item.chord.notes.length) return;
+
+      const oscs = item.chord.notes.flatMap((midi) => playScheduledNote(midi, startTime, beatSeconds * 2));
+      entries.push({ oscs });
+    });
+
+    accompanimentEntries = entries;
+    accompanimentNotice.textContent = "准备 4 拍后开始伴奏。";
+  }
+
+  function openAccompanimentDialog() {
+    accompanimentError.textContent = "";
+    accompanimentNotice.textContent = "";
+    accompanimentModal.classList.add("open");
+    requestAnimationFrame(() => chordText.focus());
+  }
+
+  function closeAccompanimentDialog() {
+    accompanimentModal.classList.remove("open");
+  }
+
   function youtubeVideoId(value) {
     try {
       const url = new URL(value.trim());
@@ -985,17 +1132,34 @@
     oscMap.clear();
   }
 
-  volumeButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    volumeControl.classList.toggle("open");
-  });
-  volumeSlider.addEventListener("input", (event) => {
-    setVolume(Number(event.target.value) / 100);
-  });
   toneButton.addEventListener("click", (event) => {
     event.stopPropagation();
     toneControl.classList.toggle("open");
-    volumeControl.classList.remove("open");
+  });
+  accompanimentButton.addEventListener("click", openAccompanimentDialog);
+  accompanimentCancel.addEventListener("click", closeAccompanimentDialog);
+  accompanimentModal.addEventListener("pointerdown", (event) => {
+    if (event.target === accompanimentModal) closeAccompanimentDialog();
+  });
+  tempoSlider.addEventListener("input", () => {
+    tempoValue.textContent = tempoSlider.value + " BPM";
+  });
+  accompanimentForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const parsed = parseChordProgression(chordText.value);
+    const invalid = parsed.find((item) => !item.chord);
+    if (!parsed.length) {
+      accompanimentError.textContent = "请输入和弦，例如：4 5 3 6 4 5 6 -";
+      return;
+    }
+    if (invalid) {
+      accompanimentError.textContent = "无法识别：" + invalid.token + "。请使用 1-7，或 4m、5m、3M 这样的写法。";
+      return;
+    }
+
+    accompanimentError.textContent = "";
+    startAccompaniment(parsed, Number(tempoSlider.value));
+    closeAccompanimentDialog();
   });
   videoButton.addEventListener("click", openVideoDialog);
   videoCancel.addEventListener("click", closeVideoDialog);
@@ -1013,9 +1177,6 @@
     loadYouTubeVideo(videoId);
   });
   document.addEventListener("pointerdown", (event) => {
-    if (!volumeControl.contains(event.target)) {
-      volumeControl.classList.remove("open");
-    }
     if (!toneControl.contains(event.target)) {
       toneControl.classList.remove("open");
     }
@@ -1034,7 +1195,6 @@
   });
   window.transposePianoResumeAudio = resumeAudio;
 
-  setVolume(volume);
   renderSelector();
   renderToneSelector();
   setInstrument(selectedInstrument);
