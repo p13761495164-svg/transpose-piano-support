@@ -534,7 +534,7 @@
 <div id="accompaniment-modal" role="dialog" aria-modal="true" aria-labelledby="accompaniment-title">
   <form class="accompaniment-dialog" id="accompaniment-form">
     <h2 id="accompaniment-title">单音伴奏</h2>
-    <p>输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；- 表示休止。</p>
+    <p>输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；单音会低八度演奏并延长到下一个单音。</p>
     <textarea id="note-text" autocomplete="off" spellcheck="false" aria-label="单音输入">4 5 3 6 4 5 6 -</textarea>
     <div class="tempo-row">
       <span>速度</span>
@@ -748,7 +748,8 @@
     const instrument = currentInstrument();
     const master = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
-    const releaseTime = Math.max(0.08, Math.min(duration * 0.9, instrument.decay));
+    const releaseStart = Math.max(startTime + instrument.attack + 0.04, startTime + duration - 0.12);
+    const stopTime = startTime + duration + 0.08;
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(instrument.brightness, startTime);
     filter.Q.value = instrument.id === "kalimba" ? 1.8 : 0.7;
@@ -756,7 +757,8 @@
     filter.connect(outputGain);
     master.gain.setValueAtTime(0.0001, startTime);
     master.gain.linearRampToValueAtTime(0.22 * gainScale, startTime + instrument.attack);
-    master.gain.exponentialRampToValueAtTime(0.0001, startTime + releaseTime);
+    master.gain.setValueAtTime(0.2 * gainScale, releaseStart);
+    master.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
     const oscs = instrument.partials.map((partial, index) => {
       const osc = audioCtx.createOscillator();
@@ -767,7 +769,7 @@
       osc.connect(partialGain);
       partialGain.connect(master);
       osc.start(startTime);
-      osc.stop(startTime + releaseTime + 0.08);
+      osc.stop(stopTime);
       return osc;
     });
 
@@ -928,7 +930,7 @@
 
     return {
       label: String(degree) + accidental,
-      midi: midiForPitchClass(pitchClass, 60),
+      midi: midiForPitchClass(pitchClass, 48),
     };
   }
 
@@ -970,7 +972,12 @@
       const startTime = melodyStart + index * beatSeconds * 2;
       if (item.note.midi === null) return;
 
-      const oscs = playScheduledNote(item.note.midi, startTime, beatSeconds * 2, 1);
+      const nextNoteIndex = notes.findIndex((candidate, candidateIndex) => (
+        candidateIndex > index && candidate.note.midi !== null
+      ));
+      const endIndex = nextNoteIndex === -1 ? notes.length : nextNoteIndex;
+      const duration = Math.max(beatSeconds * 2, (endIndex - index) * beatSeconds * 2);
+      const oscs = playScheduledNote(item.note.midi, startTime, duration, 1);
       entries.push({ oscs });
     });
 
