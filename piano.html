@@ -537,7 +537,7 @@
 <div id="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-title">
   <form class="video-dialog" id="video-form">
     <h2 id="video-title">YouTube 伴奏练习</h2>
-    <p>如果剪贴板里不是有效的 YouTube 链接，请在这里输入视频 URL。</p>
+    <p>打开后会请求访问剪贴板。同意后会自动填入 YouTube 链接，请确认后打开视频。</p>
     <input id="video-url" type="url" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=..." aria-label="YouTube 视频链接" required>
     <div id="video-notice" aria-live="polite"></div>
     <div id="video-error" aria-live="polite"></div>
@@ -598,7 +598,6 @@
   let outputGain = null;
   let volume = 1;
   let selectedInstrument = "kalimba";
-  let clipboardReadPromise = null;
   let whiteKeys = [];
   let blackKeys = [];
 
@@ -887,29 +886,22 @@
     return navigator.clipboard.readText().catch(() => "");
   }
 
-  function openVideoDialog(message = "") {
+  async function openVideoDialog() {
     videoError.textContent = "";
-    videoNotice.textContent = message;
+    videoNotice.textContent = "正在请求剪贴板访问权限...";
     videoModal.classList.add("open");
     requestAnimationFrame(() => videoUrl.focus());
-  }
-
-  async function openVideoFromClipboard() {
-    videoError.textContent = "";
-    videoNotice.textContent = "";
-    const clipboardText = await (clipboardReadPromise || requestClipboardText());
-    clipboardReadPromise = null;
+    const clipboardText = await requestClipboardText();
     const trimmedText = clipboardText.trim();
-    const videoId = youtubeVideoId(trimmedText);
-
-    if (videoId) {
-      videoUrl.value = trimmedText;
-      loadYouTubeVideo(videoId);
-      return;
-    }
 
     videoUrl.value = trimmedText;
-    openVideoDialog(trimmedText ? "剪贴板内容不是有效的 YouTube 链接，请确认后打开。" : "无法读取剪贴板，请输入 YouTube 链接。");
+    if (!trimmedText) {
+      videoNotice.textContent = "无法读取剪贴板，请输入 YouTube 链接。";
+    } else if (youtubeVideoId(trimmedText)) {
+      videoNotice.textContent = "已从剪贴板填入 YouTube 链接，请确认后打开。";
+    } else {
+      videoNotice.textContent = "已填入剪贴板内容，但它可能不是有效的 YouTube 链接。";
+    }
   }
 
   function closeVideoDialog() {
@@ -1005,10 +997,7 @@
     toneControl.classList.toggle("open");
     volumeControl.classList.remove("open");
   });
-  videoButton.addEventListener("pointerdown", () => {
-    clipboardReadPromise = requestClipboardText();
-  });
-  videoButton.addEventListener("click", openVideoFromClipboard);
+  videoButton.addEventListener("click", openVideoDialog);
   videoCancel.addEventListener("click", closeVideoDialog);
   videoClose.addEventListener("click", closeVideoMode);
   videoModal.addEventListener("pointerdown", (event) => {
