@@ -289,7 +289,7 @@
   }
 
   #video-url,
-  #chord-text {
+  #note-text {
     width: 100%;
     margin-top: 16px;
     padding: 11px 12px;
@@ -303,14 +303,14 @@
     user-select: text;
   }
 
-  #chord-text {
+  #note-text {
     min-height: 96px;
     resize: vertical;
     line-height: 1.45;
   }
 
   #video-url:focus,
-  #chord-text:focus { border-color: #111; }
+  #note-text:focus { border-color: #111; }
 
   .tempo-row {
     display: grid;
@@ -498,7 +498,7 @@
       <div id="tone-popover" role="menu" aria-label="音色选择"></div>
     </div>
     <div id="accompaniment-control">
-      <button id="accompaniment-button" type="button" title="和弦伴奏" aria-label="和弦伴奏">伴奏</button>
+      <button id="accompaniment-button" type="button" title="单音伴奏" aria-label="单音伴奏">伴奏</button>
     </div>
     <div id="video-control">
       <button id="video-button" type="button" title="YouTube 伴奏练习" aria-label="YouTube 伴奏练习">视频</button>
@@ -533,9 +533,9 @@
 
 <div id="accompaniment-modal" role="dialog" aria-modal="true" aria-labelledby="accompaniment-title">
   <form class="accompaniment-dialog" id="accompaniment-form">
-    <h2 id="accompaniment-title">和弦伴奏</h2>
-    <p>输入调内级数和弦。默认 3、6 会按小三和弦处理，调外或特殊性质可写成 4m、5m、3M。</p>
-    <textarea id="chord-text" autocomplete="off" spellcheck="false" aria-label="和弦输入">4 5 3 6 4 5 6 -</textarea>
+    <h2 id="accompaniment-title">单音伴奏</h2>
+    <p>输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；- 表示休止。</p>
+    <textarea id="note-text" autocomplete="off" spellcheck="false" aria-label="单音输入">4 5 3 6 4 5 6 -</textarea>
     <div class="tempo-row">
       <span>速度</span>
       <input id="tempo-slider" type="range" min="40" max="180" value="70" aria-label="每分钟拍数">
@@ -572,7 +572,7 @@
   const accompanimentModal = document.getElementById("accompaniment-modal");
   const accompanimentForm = document.getElementById("accompaniment-form");
   const accompanimentCancel = document.getElementById("accompaniment-cancel");
-  const chordText = document.getElementById("chord-text");
+  const noteText = document.getElementById("note-text");
   const tempoSlider = document.getElementById("tempo-slider");
   const tempoValue = document.getElementById("tempo-value");
   const accompanimentNotice = document.getElementById("accompaniment-notice");
@@ -913,51 +913,31 @@
     });
   }
 
-  function chordQualityForDegree(degree, suffix) {
-    const normalized = suffix.toLowerCase();
-    if (suffix === "M" || normalized === "maj") return "maj";
-    if (normalized === "m" || normalized === "min" || normalized === "-") return "min";
-    if (normalized === "dim" || normalized === "o" || normalized === "°") return "dim";
-    if (normalized === "aug" || normalized === "+") return "aug";
-
-    return ["maj", "min", "min", "maj", "maj", "min", "dim"][degree - 1];
-  }
-
-  function chordIntervals(quality) {
-    if (quality === "min") return [0, 3, 7];
-    if (quality === "dim") return [0, 3, 6];
-    if (quality === "aug") return [0, 4, 8];
-    return [0, 4, 7];
-  }
-
-  function parseChordToken(token) {
+  function parseMelodyToken(token) {
     if (token === "-") {
-      return { label: "-", notes: [] };
+      return { label: "-", midi: null };
     }
 
-    const match = token.match(/^([1-7])([A-Za-z°+_-]*)$/);
+    const match = token.match(/^([1-7])([#b]?)$/i);
     if (!match) return null;
 
     const degree = Number(match[1]);
-    const suffix = match[2] || "";
-    const quality = chordQualityForDegree(degree, suffix);
-    const rootPitchClass = (selectedKey + MAJOR_SCALE_INTERVALS[degree - 1]) % 12;
-    const rootMidi = midiForPitchClass(rootPitchClass);
-    const notes = chordIntervals(quality).map((interval) => rootMidi + interval);
-    const labelSuffix = quality === "maj" ? "" : quality === "min" ? "m" : quality;
+    const accidental = match[2] || "";
+    const offset = accidental.toLowerCase() === "b" ? -1 : accidental === "#" ? 1 : 0;
+    const pitchClass = (selectedKey + MAJOR_SCALE_INTERVALS[degree - 1] + offset + 12) % 12;
 
     return {
-      label: String(degree) + labelSuffix,
-      notes,
+      label: String(degree) + accidental,
+      midi: midiForPitchClass(pitchClass, 60),
     };
   }
 
-  function parseChordProgression(value) {
+  function parseMelody(value) {
     return value
       .trim()
       .split(/\s+/)
       .filter(Boolean)
-      .map((token) => ({ token, chord: parseChordToken(token) }));
+      .map((token) => ({ token, note: parseMelodyToken(token) }));
   }
 
   function stopAccompaniment() {
@@ -973,7 +953,7 @@
     accompanimentEntries = [];
   }
 
-  function startAccompaniment(chords, bpm) {
+  function startAccompaniment(notes, bpm) {
     stopAccompaniment();
     initAudio();
 
@@ -985,24 +965,24 @@
       entries.push({ oscs: playClick(now + beat * beatSeconds, beat === 0) });
     }
 
-    const chordStart = now + 4 * beatSeconds;
-    chords.forEach((item, index) => {
-      const startTime = chordStart + index * beatSeconds * 2;
-      if (!item.chord.notes.length) return;
+    const melodyStart = now + 4 * beatSeconds;
+    notes.forEach((item, index) => {
+      const startTime = melodyStart + index * beatSeconds * 2;
+      if (item.note.midi === null) return;
 
-      const oscs = item.chord.notes.flatMap((midi) => playScheduledNote(midi, startTime, beatSeconds * 2));
+      const oscs = playScheduledNote(item.note.midi, startTime, beatSeconds * 2, 1);
       entries.push({ oscs });
     });
 
     accompanimentEntries = entries;
-    accompanimentNotice.textContent = "准备 4 拍后开始伴奏。";
+    accompanimentNotice.textContent = "准备 4 拍后开始单音伴奏。";
   }
 
   function openAccompanimentDialog() {
     accompanimentError.textContent = "";
     accompanimentNotice.textContent = "";
     accompanimentModal.classList.add("open");
-    requestAnimationFrame(() => chordText.focus());
+    requestAnimationFrame(() => noteText.focus());
   }
 
   function closeAccompanimentDialog() {
@@ -1146,14 +1126,14 @@
   });
   accompanimentForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const parsed = parseChordProgression(chordText.value);
-    const invalid = parsed.find((item) => !item.chord);
+    const parsed = parseMelody(noteText.value);
+    const invalid = parsed.find((item) => !item.note);
     if (!parsed.length) {
-      accompanimentError.textContent = "请输入和弦，例如：4 5 3 6 4 5 6 -";
+      accompanimentError.textContent = "请输入单音，例如：4 5 3 6 4 5 6 -";
       return;
     }
     if (invalid) {
-      accompanimentError.textContent = "无法识别：" + invalid.token + "。请使用 1-7，或 4m、5m、3M 这样的写法。";
+      accompanimentError.textContent = "无法识别：" + invalid.token + "。请使用 1-7，或 5b、5# 这样的写法。";
       return;
     }
 
