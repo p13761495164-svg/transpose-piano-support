@@ -1247,6 +1247,27 @@
     oscMap.clear();
   }
 
+  function formatNoteInput(event) {
+    if (event.inputType !== "insertText" || !event.data) return;
+    if (noteText.selectionStart !== noteText.value.length || noteText.selectionEnd !== noteText.value.length) return;
+
+    if (/^[1-7-]$/.test(event.data) && !noteText.value.endsWith(" ")) {
+      noteText.value += " ";
+      noteText.selectionStart = noteText.value.length;
+      noteText.selectionEnd = noteText.value.length;
+      return;
+    }
+
+    if (/^[#b]$/i.test(event.data)) {
+      const mergedValue = noteText.value.replace(/([1-7])\s+([#b])$/i, "$1$2 ");
+      if (mergedValue !== noteText.value) {
+        noteText.value = mergedValue;
+        noteText.selectionStart = noteText.value.length;
+        noteText.selectionEnd = noteText.value.length;
+      }
+    }
+  }
+
   toneButton.addEventListener("click", (event) => {
     event.stopPropagation();
     toneControl.classList.toggle("open");
@@ -1259,6 +1280,7 @@
   tempoSlider.addEventListener("input", () => {
     tempoValue.textContent = tempoSlider.value + " BPM";
   });
+  noteText.addEventListener("input", formatNoteInput);
   accompanimentForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const parsed = parseMelody(noteText.value);
