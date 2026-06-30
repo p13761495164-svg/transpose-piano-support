@@ -236,22 +236,6 @@
     background: #000;
   }
 
-  #video-close {
-    position: absolute;
-    top: 16px;
-    right: 22px;
-    z-index: 1;
-    width: 32px;
-    height: 32px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.62);
-    color: #fff;
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-  }
-
   #video-modal,
   #accompaniment-modal {
     display: none;
@@ -522,7 +506,6 @@
   </div>
 
   <div id="video-stage">
-    <button id="video-close" type="button" title="关闭视频模式" aria-label="关闭视频模式">×</button>
     <iframe id="video-frame" title="YouTube 视频" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </div>
 
@@ -606,7 +589,6 @@
   const videoNotice = document.getElementById("video-notice");
   const videoError = document.getElementById("video-error");
   const videoCancel = document.getElementById("video-cancel");
-  const videoClose = document.getElementById("video-close");
   const videoFrame = document.getElementById("video-frame");
 
   const INSTRUMENTS = [
@@ -1177,12 +1159,6 @@
     requestAnimationFrame(scrollRootToCenter);
   }
 
-  function closeVideoMode() {
-    videoFrame.src = "about:blank";
-    app.classList.remove("video-mode");
-    requestAnimationFrame(scrollRootToCenter);
-  }
-
   function onPointerDown(event) {
     event.preventDefault();
 
@@ -1300,7 +1276,6 @@
   });
   videoButton.addEventListener("click", openVideoDialog);
   videoCancel.addEventListener("click", closeVideoDialog);
-  videoClose.addEventListener("click", closeVideoMode);
   videoModal.addEventListener("pointerdown", (event) => {
     if (event.target === videoModal) closeVideoDialog();
   });
