@@ -1153,7 +1153,16 @@
   }
 
   function loadYouTubeVideo(videoId) {
-    videoFrame.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(videoId) + "?playsinline=1&rel=0";
+    const params = new URLSearchParams({
+      playsinline: "1",
+      rel: "0",
+      controls: "0",
+      modestbranding: "1",
+      iv_load_policy: "3",
+      fs: "0",
+      disablekb: "1",
+    });
+    videoFrame.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(videoId) + "?" + params.toString();
     app.classList.add("video-mode");
     closeVideoDialog();
     requestAnimationFrame(scrollRootToCenter);
