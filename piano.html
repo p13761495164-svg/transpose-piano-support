@@ -661,7 +661,6 @@
   function resetAudioContext() {
     oscMap.forEach(stopOscillators);
     oscMap.clear();
-    stopSpeech();
     accompanimentEntries.forEach((entry) => {
       entry.oscs.forEach((osc) => {
         try {
@@ -790,11 +789,43 @@
       utterance.rate = 1.35;
       utterance.pitch = Math.max(0.65, Math.min(1.85, 0.9 + (midi - 60) / 36));
       utterance.volume = 1;
+      window.speechSynthesis.resume();
       window.speechSynthesis.speak(utterance);
     }, delayMs);
 
     speechTimers.push(timer);
     return true;
+  }
+
+  function playSolfegeFallback(midi, startTime) {
+    const frequency = 440 * Math.pow(2, (midi - 69) / 12);
+    const master = audioCtx.createGain();
+    const tone = audioCtx.createOscillator();
+    const air = audioCtx.createOscillator();
+    const vowel = audioCtx.createBiquadFilter();
+    const softener = audioCtx.createBiquadFilter();
+    vowel.type = "bandpass";
+    vowel.frequency.setValueAtTime(900, startTime);
+    vowel.Q.value = 4.4;
+    softener.type = "lowpass";
+    softener.frequency.setValueAtTime(2600, startTime);
+    tone.type = "sawtooth";
+    air.type = "triangle";
+    tone.frequency.setValueAtTime(frequency, startTime);
+    air.frequency.setValueAtTime(frequency * 2, startTime);
+    master.gain.setValueAtTime(0.0001, startTime);
+    master.gain.linearRampToValueAtTime(0.12, startTime + 0.035);
+    master.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.62);
+    tone.connect(vowel);
+    air.connect(vowel);
+    vowel.connect(softener);
+    softener.connect(master);
+    master.connect(outputGain);
+    tone.start(startTime);
+    air.start(startTime);
+    tone.stop(startTime + 0.68);
+    air.stop(startTime + 0.68);
+    return [tone, air];
   }
 
   function markActive(midi, isActive) {
@@ -813,16 +844,22 @@
   function playNote(midi) {
     ensureAudioForPlayback();
 
-    if (currentInstrument().id === "solfege" && speakSolfege(midi)) {
-      markActive(midi, true);
-      window.setTimeout(() => markActive(midi, false), 480);
-      return;
-    }
-
     const previous = oscMap.get(midi);
     if (previous) {
       stopOscillators(previous);
       oscMap.delete(midi);
+    }
+
+    if (currentInstrument().id === "solfege") {
+      speakSolfege(midi);
+      const oscs = playSolfegeFallback(midi, audioCtx.currentTime);
+      const tid = setTimeout(() => {
+        oscMap.delete(midi);
+        markActive(midi, false);
+      }, 720);
+      oscMap.set(midi, { oscs, tid });
+      markActive(midi, true);
+      return;
     }
 
     const t = audioCtx.currentTime;
@@ -870,8 +907,9 @@
   function playScheduledNote(midi, startTime) {
     ensureAudioForPlayback();
 
-    if (currentInstrument().id === "solfege" && speakSolfege(midi, startTime)) {
-      return [];
+    if (currentInstrument().id === "solfege") {
+      speakSolfege(midi, startTime);
+      return playSolfegeFallback(midi, startTime);
     }
 
     const frequency = 440 * Math.pow(2, (midi - 69) / 12);
