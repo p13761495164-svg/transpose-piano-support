@@ -634,6 +634,24 @@
   const pointerMidi = new Map();
   const pointerState = new Map();
   let audioRecoveryTimer = null;
+  const INSTRUMENT_STORAGE_KEY = "transpose-piano-instrument";
+
+  function readSavedInstrument() {
+    try {
+      const savedInstrument = window.localStorage.getItem(INSTRUMENT_STORAGE_KEY);
+      return INSTRUMENTS.some((instrument) => instrument.id === savedInstrument) ? savedInstrument : "kalimba";
+    } catch (error) {
+      return "kalimba";
+    }
+  }
+
+  function saveInstrument(instrumentId) {
+    try {
+      window.localStorage.setItem(INSTRUMENT_STORAGE_KEY, instrumentId);
+    } catch (error) {
+      // Storage can be unavailable in private browsing; the app should still work.
+    }
+  }
 
   function keyTop() {
     const value = getComputedStyle(document.body).getPropertyValue("--key-top");
@@ -1094,6 +1112,7 @@
   function setInstrument(instrumentId) {
     selectedInstrument = instrumentId;
     const instrument = currentInstrument();
+    saveInstrument(instrument.id);
     toneButton.textContent = instrument.label;
     toneButton.title = instrument.label;
     toneButton.setAttribute("aria-label", "当前音色：" + instrument.label);
@@ -1458,6 +1477,7 @@
 
   renderSelector();
   renderToneSelector();
+  selectedInstrument = readSavedInstrument();
   setInstrument(selectedInstrument);
   setKey(0);
 })();
