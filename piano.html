@@ -608,7 +608,7 @@
     { id: "guitar", label: "尼龙吉他", wave: "triangle", partials: [1, 2, 3, 5], levels: [1, 0.3, 0.15, 0.06], attack: 0.004, decay: 3.1, brightness: 3000 },
     { id: "solfege", label: "solfege" },
   ];
-  const SOLFEGE_LABELS = ["do", "re", "mi", "fa", "sol", "la", "ti"];
+  const SOLFEGE_LABELS = ["do", "re", "mi", "fa", "sol", "la", "si"];
   const SOLFEGE_VOWELS = {
     do: [700, 1080],
     re: [520, 1720],
@@ -616,7 +616,7 @@
     fa: [620, 1250],
     sol: [650, 950],
     la: [760, 1200],
-    ti: [330, 2300],
+    si: [300, 2350],
   };
 
   let selectedKey = 0;
@@ -788,37 +788,49 @@
     const master = audioCtx.createGain();
     const tone = audioCtx.createOscillator();
     const body = audioCtx.createOscillator();
+    const edge = audioCtx.createOscillator();
     const formantOne = audioCtx.createBiquadFilter();
     const formantTwo = audioCtx.createBiquadFilter();
     const softener = audioCtx.createBiquadFilter();
+    const edgeGain = audioCtx.createGain();
     formantOne.type = "bandpass";
     formantTwo.type = "bandpass";
     formantOne.frequency.setValueAtTime(formants[0], startTime);
     formantTwo.frequency.setValueAtTime(formants[1], startTime);
-    formantOne.Q.value = 5.2;
-    formantTwo.Q.value = 6.4;
+    formantOne.Q.value = 7.2;
+    formantTwo.Q.value = 8.2;
     softener.type = "lowpass";
-    softener.frequency.setValueAtTime(3400, startTime);
+    softener.frequency.setValueAtTime(4200, startTime);
     tone.type = "sawtooth";
     body.type = "triangle";
+    edge.type = "square";
     tone.frequency.setValueAtTime(frequency, startTime);
     body.frequency.setValueAtTime(frequency * 0.5, startTime);
+    edge.frequency.setValueAtTime(frequency * 3, startTime);
+    edgeGain.gain.setValueAtTime(0.001, startTime);
+    edgeGain.gain.linearRampToValueAtTime(0.032, startTime + 0.01);
+    edgeGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.09);
     master.gain.setValueAtTime(0.0001, startTime);
-    master.gain.linearRampToValueAtTime(0.18, startTime + 0.045);
-    master.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.78);
+    master.gain.linearRampToValueAtTime(0.24, startTime + 0.025);
+    master.gain.setValueAtTime(0.2, startTime + 0.18);
+    master.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.72);
     tone.connect(formantOne);
     tone.connect(formantTwo);
     body.connect(formantOne);
     body.connect(formantTwo);
+    edge.connect(edgeGain);
+    edgeGain.connect(formantTwo);
     formantOne.connect(softener);
     formantTwo.connect(softener);
     softener.connect(master);
     master.connect(outputGain);
     tone.start(startTime);
     body.start(startTime);
-    tone.stop(startTime + 0.84);
-    body.stop(startTime + 0.84);
-    return [tone, body];
+    edge.start(startTime);
+    tone.stop(startTime + 0.78);
+    body.stop(startTime + 0.78);
+    edge.stop(startTime + 0.12);
+    return [tone, body, edge];
   }
 
   function markActive(midi, isActive) {
