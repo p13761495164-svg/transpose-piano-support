@@ -627,6 +627,7 @@
   let whiteKeys = [];
   let blackKeys = [];
   let accompanimentEntries = [];
+  let speechTimers = [];
 
   const activeNotes = new Set();
   const oscMap = new Map();
@@ -781,6 +782,34 @@
     return SOLFEGE_LABELS[bestIndex];
   }
 
+  function stopSpeech() {
+    speechTimers.forEach((timer) => window.clearTimeout(timer));
+    speechTimers = [];
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  function speakSolfege(midi, startTime = null) {
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+
+    const delayMs = startTime === null || !audioCtx
+      ? 0
+      : Math.max(0, (startTime - audioCtx.currentTime) * 1000);
+    const timer = window.setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(solfegeForMidi(midi));
+      utterance.lang = "it-IT";
+      utterance.rate = 0.92;
+      utterance.pitch = Math.max(0.7, Math.min(1.6, 0.95 + (midi - 60) / 42));
+      utterance.volume = 1;
+      if (startTime === null) window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+      window.speechSynthesis.speak(utterance);
+    }, delayMs);
+
+    speechTimers.push(timer);
+  }
+
   function playSolfegeFallback(midi, startTime) {
     const frequency = 440 * Math.pow(2, (midi - 69) / 12);
     const syllable = solfegeForMidi(midi);
@@ -856,6 +885,7 @@
     }
 
     if (currentInstrument().id === "solfege") {
+      speakSolfege(midi);
       const oscs = playSolfegeFallback(midi, audioCtx.currentTime);
       const tid = setTimeout(() => {
         oscMap.delete(midi);
@@ -912,6 +942,7 @@
     ensureAudioForPlayback();
 
     if (currentInstrument().id === "solfege") {
+      speakSolfege(midi, startTime);
       return playSolfegeFallback(midi, startTime);
     }
 
@@ -1158,6 +1189,7 @@
   }
 
   function stopAccompaniment() {
+    stopSpeech();
     accompanimentEntries.forEach((entry) => {
       entry.oscs.forEach((osc) => {
         try {
@@ -1334,6 +1366,7 @@
   function onBeforeUnload() {
     oscMap.forEach(stopOscillators);
     oscMap.clear();
+    stopSpeech();
   }
 
   function formatNoteInput(event) {
