@@ -602,7 +602,9 @@
     { id: "organ", label: "风琴", wave: "sine", partials: [1, 2, 3, 4], levels: [1, 0.5, 0.28, 0.14], attack: 0.025, decay: 4.6, brightness: 4600 },
     { id: "pad", label: "合成器 Pad", wave: "sawtooth", partials: [1, 0.5, 2], levels: [0.62, 0.23, 0.14], attack: 0.32, decay: 5.6, brightness: 1050 },
     { id: "guitar", label: "尼龙吉他", wave: "triangle", partials: [1, 2, 3, 5], levels: [1, 0.3, 0.15, 0.06], attack: 0.004, decay: 3.1, brightness: 3000 },
+    { id: "solfege", label: "solfege" },
   ];
+  const SOLFEGE_LABELS = ["do", "re", "mi", "fa", "sol", "la", "ti"];
 
   let selectedKey = 0;
   let audioCtx = null;
@@ -612,6 +614,7 @@
   let whiteKeys = [];
   let blackKeys = [];
   let accompanimentEntries = [];
+  let speechTimers = [];
 
   const activeNotes = new Set();
   const oscMap = new Map();
@@ -658,6 +661,7 @@
   function resetAudioContext() {
     oscMap.forEach(stopOscillators);
     oscMap.clear();
+    stopSpeech();
     accompanimentEntries.forEach((entry) => {
       entry.oscs.forEach((osc) => {
         try {
@@ -746,6 +750,53 @@
     return INSTRUMENTS.find((instrument) => instrument.id === selectedInstrument) || INSTRUMENTS[2];
   }
 
+  function solfegeForMidi(midi) {
+    const pitchClass = midi % 12;
+    const scale = scalePitchClasses();
+    const exactIndex = scale.indexOf(pitchClass);
+    if (exactIndex !== -1) return SOLFEGE_LABELS[exactIndex];
+
+    let bestIndex = 0;
+    let bestDistance = 12;
+    scale.forEach((scalePitch, index) => {
+      const up = (pitchClass - scalePitch + 12) % 12;
+      const down = (scalePitch - pitchClass + 12) % 12;
+      const distance = Math.min(up, down);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    });
+    return SOLFEGE_LABELS[bestIndex];
+  }
+
+  function stopSpeech() {
+    speechTimers.forEach((timer) => window.clearTimeout(timer));
+    speechTimers = [];
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  function speakSolfege(midi, startTime = null) {
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return false;
+
+    const delayMs = startTime === null || !audioCtx
+      ? 0
+      : Math.max(0, (startTime - audioCtx.currentTime) * 1000);
+    const timer = window.setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(solfegeForMidi(midi));
+      utterance.lang = "en-US";
+      utterance.rate = 1.35;
+      utterance.pitch = Math.max(0.65, Math.min(1.85, 0.9 + (midi - 60) / 36));
+      utterance.volume = 1;
+      window.speechSynthesis.speak(utterance);
+    }, delayMs);
+
+    speechTimers.push(timer);
+    return true;
+  }
+
   function markActive(midi, isActive) {
     if (isActive) {
       activeNotes.add(midi);
@@ -762,6 +813,12 @@
   function playNote(midi) {
     ensureAudioForPlayback();
 
+    if (currentInstrument().id === "solfege" && speakSolfege(midi)) {
+      markActive(midi, true);
+      window.setTimeout(() => markActive(midi, false), 480);
+      return;
+    }
+
     const previous = oscMap.get(midi);
     if (previous) {
       stopOscillators(previous);
@@ -771,7 +828,8 @@
     const t = audioCtx.currentTime;
     const frequency = 440 * Math.pow(2, (midi - 69) / 12);
 
-    const instrument = currentInstrument();
+    const selected = currentInstrument();
+    const instrument = selected.id === "solfege" ? INSTRUMENTS[2] : selected;
     const master = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
     filter.type = "lowpass";
@@ -812,8 +870,13 @@
   function playScheduledNote(midi, startTime) {
     ensureAudioForPlayback();
 
+    if (currentInstrument().id === "solfege" && speakSolfege(midi, startTime)) {
+      return [];
+    }
+
     const frequency = 440 * Math.pow(2, (midi - 69) / 12);
-    const instrument = currentInstrument();
+    const selected = currentInstrument();
+    const instrument = selected.id === "solfege" ? INSTRUMENTS[2] : selected;
     const master = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
     filter.type = "lowpass";
@@ -1054,6 +1117,7 @@
   }
 
   function stopAccompaniment() {
+    stopSpeech();
     accompanimentEntries.forEach((entry) => {
       entry.oscs.forEach((osc) => {
         try {
@@ -1230,6 +1294,7 @@
   function onBeforeUnload() {
     oscMap.forEach(stopOscillators);
     oscMap.clear();
+    stopSpeech();
   }
 
   function formatNoteInput(event) {
