@@ -569,7 +569,7 @@
   const START_MIDI = 21;
   const TOTAL_KEYS = 88;
   const WHITE_KEY_W = 56;
-  const BLACK_KEY_W = 34;
+  const BLACK_KEY_W = 43;
   const SIDE_PAD = 16;
   const DECAY = 3.0;
   const SCROLL_THRESHOLD = 14;
@@ -1031,7 +1031,7 @@
       const prevWhiteIndex = whiteKeys.findIndex((whiteKey) => whiteKey.midi === key.midi - 1);
       if (prevWhiteIndex === -1) continue;
 
-      const left = prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - Math.floor(BLACK_KEY_W / 2);
+      const left = prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - BLACK_KEY_W / 2;
       const height = innerHeight * 0.6;
 
       if (
@@ -1087,7 +1087,7 @@
       const el = document.createElement("div");
       el.className = "black-key";
       el.dataset.midi = String(key.midi);
-      el.style.left = (SIDE_PAD + prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - Math.floor(BLACK_KEY_W / 2)) + "px";
+      el.style.left = (SIDE_PAD + prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - BLACK_KEY_W / 2) + "px";
       keyboardInner.appendChild(el);
     });
   }
