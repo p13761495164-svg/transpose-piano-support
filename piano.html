@@ -109,6 +109,15 @@
     background: #fff;
   }
 
+  #language-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 6px 5px 6px 8px;
+    background: #fff;
+  }
+
   #video-control {
     flex-shrink: 0;
     display: flex;
@@ -126,6 +135,7 @@
   }
 
   #tone-button,
+  #language-button,
   #accompaniment-button {
     min-width: 56px;
     max-width: 108px;
@@ -161,13 +171,16 @@
 
   #tone-button:active,
   #tone-control.open #tone-button,
+  #language-button:active,
+  #language-control.open #language-button,
   #accompaniment-button:active,
   #video-button:active {
     background: #f0f0f0;
     border-color: #999;
   }
 
-  #tone-popover {
+  #tone-popover,
+  #language-popover {
     display: none;
     position: absolute;
     top: calc(100% + 6px);
@@ -182,12 +195,18 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
   }
 
-  #tone-control.open #tone-popover {
+  #language-popover {
+    width: 118px;
+  }
+
+  #tone-control.open #tone-popover,
+  #language-control.open #language-popover {
     display: grid;
     gap: 2px;
   }
 
-  .tone-option {
+  .tone-option,
+  .language-option {
     width: 100%;
     padding: 9px 10px;
     border: 0;
@@ -201,7 +220,9 @@
   }
 
   .tone-option.active,
-  .tone-option:active {
+  .language-option.active,
+  .tone-option:active,
+  .language-option:active {
     background: #111;
     color: #fff;
   }
@@ -471,10 +492,15 @@
       padding: 3px 4px 3px 6px;
     }
 
+    #language-control {
+      padding: 3px 4px 3px 6px;
+    }
+
     #accompaniment-control,
     #video-control { padding: 3px 5px 3px 0; }
 
     #tone-button,
+    #language-button,
     #accompaniment-button {
       min-width: 40px;
       height: 32px;
@@ -502,6 +528,10 @@
     <div id="key-selector">
       <div id="key-selector-inner"></div>
     </div>
+    <div id="language-control">
+      <button id="language-button" type="button" title="Language" aria-label="Language">En</button>
+      <div id="language-popover" role="menu" aria-label="Language"></div>
+    </div>
     <div id="tone-control">
       <button id="tone-button" type="button" title="选择音色" aria-label="选择音色">音色</button>
       <div id="tone-popover" role="menu" aria-label="音色选择"></div>
@@ -528,7 +558,7 @@
 <div id="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-title">
   <form class="video-dialog" id="video-form">
     <h2 id="video-title">YouTube 伴奏练习</h2>
-    <p>打开后会请求访问剪贴板。同意后会自动填入 YouTube 链接，请确认后打开视频。</p>
+    <p id="video-help">打开后会请求访问剪贴板。同意后会自动填入 YouTube 链接，请确认后打开视频。</p>
     <input id="video-url" type="url" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=..." aria-label="YouTube 视频链接" required>
     <div id="video-notice" aria-live="polite"></div>
     <div id="video-error" aria-live="polite"></div>
@@ -542,16 +572,16 @@
 <div id="accompaniment-modal" role="dialog" aria-modal="true" aria-labelledby="accompaniment-title">
   <form class="accompaniment-dialog" id="accompaniment-form">
     <h2 id="accompaniment-title">单音伴奏</h2>
-    <p>输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；分解时，6 - 会演奏 6、3、高音6、7、高音1。</p>
+    <p id="accompaniment-help">输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；分解时，6 - 会演奏 6、3、高音6、7、高音1。</p>
     <textarea id="note-text" autocomplete="off" spellcheck="false" aria-label="单音输入">4 5 3 6 4 5 6 -</textarea>
     <div class="tempo-row">
-      <span>速度</span>
+      <span id="tempo-label">速度</span>
       <input id="tempo-slider" type="range" min="40" max="180" value="70" aria-label="每分钟拍数">
       <span id="tempo-value">70 BPM</span>
     </div>
     <label class="pattern-row">
       <input id="broken-toggle" type="checkbox">
-      <span>分解</span>
+      <span id="broken-label">分解</span>
     </label>
     <div id="accompaniment-notice" aria-live="polite"></div>
     <div id="accompaniment-error" aria-live="polite"></div>
@@ -577,6 +607,9 @@
   const keySelectorInner = document.getElementById("key-selector-inner");
   const keyboardScroll = document.getElementById("keyboard-scroll");
   const keyboardInner = document.getElementById("keyboard-inner");
+  const languageControl = document.getElementById("language-control");
+  const languageButton = document.getElementById("language-button");
+  const languagePopover = document.getElementById("language-popover");
   const toneControl = document.getElementById("tone-control");
   const toneButton = document.getElementById("tone-button");
   const tonePopover = document.getElementById("tone-popover");
@@ -594,25 +627,260 @@
   const videoButton = document.getElementById("video-button");
   const videoModal = document.getElementById("video-modal");
   const videoForm = document.getElementById("video-form");
+  const videoTitle = document.getElementById("video-title");
+  const videoHelp = document.getElementById("video-help");
   const videoUrl = document.getElementById("video-url");
   const videoNotice = document.getElementById("video-notice");
   const videoError = document.getElementById("video-error");
   const videoCancel = document.getElementById("video-cancel");
   const videoFrame = document.getElementById("video-frame");
+  const accompanimentTitle = document.getElementById("accompaniment-title");
+  const accompanimentHelp = document.getElementById("accompaniment-help");
+  const tempoLabel = document.getElementById("tempo-label");
+  const brokenLabel = document.getElementById("broken-label");
 
   const INSTRUMENTS = [
-    { id: "piano", label: "原声钢琴", wave: "triangle", partials: [1, 2, 3, 4.1], levels: [1, 0.34, 0.18, 0.08], attack: 0.006, decay: 3.3, brightness: 3800 },
-    { id: "electric", label: "电钢琴", wave: "sine", partials: [1, 2, 3.01, 4], levels: [1, 0.42, 0.2, 0.1], attack: 0.012, decay: 3.8, brightness: 2600 },
-    { id: "kalimba", label: "卡林巴", wave: "sine", partials: [1, 4.03], levels: [1, 0.3], attack: 0.004, decay: 3, brightness: 5200 },
-    { id: "musicbox", label: "八音盒", wave: "sine", partials: [1, 2, 3, 5.02], levels: [1, 0.22, 0.18, 0.12], attack: 0.002, decay: 2.8, brightness: 7000 },
-    { id: "marimba", label: "马林巴／木琴", wave: "sine", partials: [1, 3.99, 9.02], levels: [1, 0.23, 0.08], attack: 0.003, decay: 1.8, brightness: 3200 },
-    { id: "harp", label: "竖琴", wave: "triangle", partials: [1, 2, 3, 4], levels: [1, 0.25, 0.13, 0.06], attack: 0.01, decay: 4.2, brightness: 4400 },
-    { id: "strings", label: "弦乐合奏", wave: "sawtooth", partials: [1, 1.005, 0.995], levels: [0.5, 0.28, 0.28], attack: 0.18, decay: 4.8, brightness: 1700 },
-    { id: "organ", label: "风琴", wave: "sine", partials: [1, 2, 3, 4], levels: [1, 0.5, 0.28, 0.14], attack: 0.025, decay: 4.6, brightness: 4600 },
-    { id: "pad", label: "合成器 Pad", wave: "sawtooth", partials: [1, 0.5, 2], levels: [0.62, 0.23, 0.14], attack: 0.32, decay: 5.6, brightness: 1050 },
-    { id: "guitar", label: "尼龙吉他", wave: "triangle", partials: [1, 2, 3, 5], levels: [1, 0.3, 0.15, 0.06], attack: 0.004, decay: 3.1, brightness: 3000 },
-    { id: "solfege", label: "solfege" },
+    { id: "piano", wave: "triangle", partials: [1, 2, 3, 4.1], levels: [1, 0.34, 0.18, 0.08], attack: 0.006, decay: 3.3, brightness: 3800 },
+    { id: "electric", wave: "sine", partials: [1, 2, 3.01, 4], levels: [1, 0.42, 0.2, 0.1], attack: 0.012, decay: 3.8, brightness: 2600 },
+    { id: "kalimba", wave: "sine", partials: [1, 4.03], levels: [1, 0.3], attack: 0.004, decay: 3, brightness: 5200 },
+    { id: "musicbox", wave: "sine", partials: [1, 2, 3, 5.02], levels: [1, 0.22, 0.18, 0.12], attack: 0.002, decay: 2.8, brightness: 7000 },
+    { id: "marimba", wave: "sine", partials: [1, 3.99, 9.02], levels: [1, 0.23, 0.08], attack: 0.003, decay: 1.8, brightness: 3200 },
+    { id: "harp", wave: "triangle", partials: [1, 2, 3, 4], levels: [1, 0.25, 0.13, 0.06], attack: 0.01, decay: 4.2, brightness: 4400 },
+    { id: "strings", wave: "sawtooth", partials: [1, 1.005, 0.995], levels: [0.5, 0.28, 0.28], attack: 0.18, decay: 4.8, brightness: 1700 },
+    { id: "organ", wave: "sine", partials: [1, 2, 3, 4], levels: [1, 0.5, 0.28, 0.14], attack: 0.025, decay: 4.6, brightness: 4600 },
+    { id: "pad", wave: "sawtooth", partials: [1, 0.5, 2], levels: [0.62, 0.23, 0.14], attack: 0.32, decay: 5.6, brightness: 1050 },
+    { id: "guitar", wave: "triangle", partials: [1, 2, 3, 5], levels: [1, 0.3, 0.15, 0.06], attack: 0.004, decay: 3.1, brightness: 3000 },
+    { id: "solfege" },
   ];
+  const LANGUAGES = [
+    { id: "en", short: "En", label: "English" },
+    { id: "zh", short: "中", label: "中文" },
+    { id: "ja", short: "日", label: "日本語" },
+    { id: "ko", short: "한", label: "한국어" },
+    { id: "es", short: "ES", label: "Español" },
+  ];
+  const UI_TEXT = {
+    en: {
+      appTitle: "Transpose Piano",
+      language: "Language",
+      tone: "Tone",
+      toneMenu: "Tone selection",
+      currentTone: "Current tone: ",
+      accompaniment: "Auto",
+      video: "Video",
+      youtubeTitle: "YouTube Practice",
+      youtubeFrame: "YouTube Video",
+      videoHelp: "The app will ask for clipboard access. If allowed, it will paste a YouTube link automatically. Confirm to open the video.",
+      youtubeUrl: "YouTube video URL",
+      cancel: "Cancel",
+      openVideo: "Open Video",
+      melodyTitle: "Auto Melody",
+      melodyHelp: "Enter scale-degree notes. Use # and b for accidentals, such as 5b or 5#. In broken mode, 6 - plays 6, 3, high 6, 7, high 1.",
+      noteInput: "Note input",
+      tempo: "Tempo",
+      bpm: "beats per minute",
+      broken: "Broken",
+      start: "Start",
+      readyBroken: "Starting broken melody after 4 prep beats.",
+      readyMelody: "Starting melody after 4 prep beats.",
+      clipboardRequest: "Requesting clipboard access...",
+      clipboardEmpty: "Could not read the clipboard. Please enter a YouTube link.",
+      clipboardYoutube: "YouTube link pasted from clipboard. Confirm to open.",
+      clipboardMaybe: "Clipboard text was pasted, but it may not be a valid YouTube link.",
+      emptyMelody: "Enter notes, for example: 4 5 3 6 4 5 6 -",
+      invalidToken: "Could not read: {token}. Use 1-7, or accidentals like 5b and 5#.",
+      invalidYoutube: "Enter a valid YouTube video link.",
+      instruments: {
+        piano: "Piano",
+        electric: "E.Piano",
+        kalimba: "Kalimba",
+        musicbox: "Music Box",
+        marimba: "Marimba",
+        harp: "Harp",
+        strings: "Strings",
+        organ: "Organ",
+        pad: "Pad",
+        guitar: "Guitar",
+        solfege: "Solfege",
+      },
+    },
+    zh: {
+      appTitle: "移调钢琴",
+      language: "语言",
+      tone: "音色",
+      toneMenu: "音色选择",
+      currentTone: "当前音色：",
+      accompaniment: "伴奏",
+      video: "视频",
+      youtubeTitle: "YouTube 伴奏练习",
+      youtubeFrame: "YouTube 视频",
+      videoHelp: "打开后会请求访问剪贴板。同意后会自动填入 YouTube 链接，请确认后打开视频。",
+      youtubeUrl: "YouTube 视频链接",
+      cancel: "取消",
+      openVideo: "打开视频",
+      melodyTitle: "单音伴奏",
+      melodyHelp: "输入调内级数单音。升降用 # 和 b 表示，例如 5b、5#；分解时，6 - 会演奏 6、3、高音6、7、高音1。",
+      noteInput: "单音输入",
+      tempo: "速度",
+      bpm: "每分钟拍数",
+      broken: "分解",
+      start: "开始",
+      readyBroken: "准备 4 拍后开始分解伴奏。",
+      readyMelody: "准备 4 拍后开始单音伴奏。",
+      clipboardRequest: "正在请求剪贴板访问权限...",
+      clipboardEmpty: "无法读取剪贴板，请输入 YouTube 链接。",
+      clipboardYoutube: "已从剪贴板填入 YouTube 链接，请确认后打开。",
+      clipboardMaybe: "已填入剪贴板内容，但它可能不是有效的 YouTube 链接。",
+      emptyMelody: "请输入单音，例如：4 5 3 6 4 5 6 -",
+      invalidToken: "无法识别：{token}。请使用 1-7，或 5b、5# 这样的写法。",
+      invalidYoutube: "请输入有效的 YouTube 视频链接。",
+      instruments: {
+        piano: "原声钢琴",
+        electric: "电钢琴",
+        kalimba: "卡林巴",
+        musicbox: "八音盒",
+        marimba: "马林巴",
+        harp: "竖琴",
+        strings: "弦乐",
+        organ: "风琴",
+        pad: "Pad",
+        guitar: "尼龙吉他",
+        solfege: "唱名",
+      },
+    },
+    ja: {
+      appTitle: "移調ピアノ",
+      language: "言語",
+      tone: "音色",
+      toneMenu: "音色選択",
+      currentTone: "現在の音色: ",
+      accompaniment: "伴奏",
+      video: "動画",
+      youtubeTitle: "YouTube 練習",
+      youtubeFrame: "YouTube 動画",
+      videoHelp: "クリップボードへのアクセスを求めます。許可すると YouTube リンクを自動入力します。確認して動画を開いてください。",
+      youtubeUrl: "YouTube 動画URL",
+      cancel: "取消",
+      openVideo: "動画を開く",
+      melodyTitle: "単音伴奏",
+      melodyHelp: "音階度数を入力します。臨時記号は 5b、5# のように # と b を使います。分解では 6 - が 6、3、高い6、7、高い1 になります。",
+      noteInput: "単音入力",
+      tempo: "テンポ",
+      bpm: "BPM",
+      broken: "分解",
+      start: "開始",
+      readyBroken: "4拍の準備音の後、分解伴奏を始めます。",
+      readyMelody: "4拍の準備音の後、単音伴奏を始めます。",
+      clipboardRequest: "クリップボードへのアクセスを要求中...",
+      clipboardEmpty: "クリップボードを読めません。YouTube リンクを入力してください。",
+      clipboardYoutube: "クリップボードから YouTube リンクを入力しました。確認して開いてください。",
+      clipboardMaybe: "クリップボード内容を入力しましたが、有効な YouTube リンクではない可能性があります。",
+      emptyMelody: "単音を入力してください。例: 4 5 3 6 4 5 6 -",
+      invalidToken: "読み取れません: {token}。1-7、または 5b、5# のように入力してください。",
+      invalidYoutube: "有効な YouTube 動画リンクを入力してください。",
+      instruments: {
+        piano: "ピアノ",
+        electric: "E.ピアノ",
+        kalimba: "カリンバ",
+        musicbox: "オルゴール",
+        marimba: "マリンバ",
+        harp: "ハープ",
+        strings: "弦楽",
+        organ: "オルガン",
+        pad: "Pad",
+        guitar: "ギター",
+        solfege: "ソルフェージュ",
+      },
+    },
+    ko: {
+      appTitle: "조옮김 피아노",
+      language: "언어",
+      tone: "음색",
+      toneMenu: "음색 선택",
+      currentTone: "현재 음색: ",
+      accompaniment: "반주",
+      video: "영상",
+      youtubeTitle: "YouTube 연습",
+      youtubeFrame: "YouTube 영상",
+      videoHelp: "클립보드 접근을 요청합니다. 허용하면 YouTube 링크가 자동으로 입력됩니다. 확인 후 영상을 여세요.",
+      youtubeUrl: "YouTube 영상 URL",
+      cancel: "취소",
+      openVideo: "영상 열기",
+      melodyTitle: "단음 반주",
+      melodyHelp: "조 안의 계이름 숫자를 입력하세요. 올림/내림은 5b, 5#처럼 #와 b를 사용합니다. 분해 모드에서는 6 - 이 6, 3, 높은6, 7, 높은1로 연주됩니다.",
+      noteInput: "단음 입력",
+      tempo: "템포",
+      bpm: "분당 박자",
+      broken: "분해",
+      start: "시작",
+      readyBroken: "준비 4박 후 분해 반주를 시작합니다.",
+      readyMelody: "준비 4박 후 단음 반주를 시작합니다.",
+      clipboardRequest: "클립보드 접근 요청 중...",
+      clipboardEmpty: "클립보드를 읽을 수 없습니다. YouTube 링크를 입력하세요.",
+      clipboardYoutube: "클립보드의 YouTube 링크를 입력했습니다. 확인 후 여세요.",
+      clipboardMaybe: "클립보드 내용을 입력했지만 유효한 YouTube 링크가 아닐 수 있습니다.",
+      emptyMelody: "단음을 입력하세요. 예: 4 5 3 6 4 5 6 -",
+      invalidToken: "읽을 수 없음: {token}. 1-7 또는 5b, 5#처럼 입력하세요.",
+      invalidYoutube: "유효한 YouTube 영상 링크를 입력하세요.",
+      instruments: {
+        piano: "피아노",
+        electric: "E.피아노",
+        kalimba: "칼림바",
+        musicbox: "오르골",
+        marimba: "마림바",
+        harp: "하프",
+        strings: "스트링",
+        organ: "오르간",
+        pad: "Pad",
+        guitar: "기타",
+        solfege: "계이름",
+      },
+    },
+    es: {
+      appTitle: "Piano Transpositor",
+      language: "Idioma",
+      tone: "Tono",
+      toneMenu: "Selección de tono",
+      currentTone: "Tono actual: ",
+      accompaniment: "Auto",
+      video: "Video",
+      youtubeTitle: "Práctica con YouTube",
+      youtubeFrame: "Video de YouTube",
+      videoHelp: "La app pedirá acceso al portapapeles. Si lo permites, pegará un enlace de YouTube automáticamente. Confirma para abrir el video.",
+      youtubeUrl: "URL de video de YouTube",
+      cancel: "Cancelar",
+      openVideo: "Abrir video",
+      melodyTitle: "Melodía automática",
+      melodyHelp: "Introduce notas por grados. Usa # y b para alteraciones, como 5b o 5#. En modo arpegio, 6 - toca 6, 3, 6 agudo, 7, 1 agudo.",
+      noteInput: "Entrada de notas",
+      tempo: "Tempo",
+      bpm: "pulsos por minuto",
+      broken: "Arpegio",
+      start: "Iniciar",
+      readyBroken: "El arpegio empieza después de 4 pulsos de preparación.",
+      readyMelody: "La melodía empieza después de 4 pulsos de preparación.",
+      clipboardRequest: "Solicitando acceso al portapapeles...",
+      clipboardEmpty: "No se pudo leer el portapapeles. Introduce un enlace de YouTube.",
+      clipboardYoutube: "Enlace de YouTube pegado desde el portapapeles. Confirma para abrir.",
+      clipboardMaybe: "Se pegó el texto del portapapeles, pero puede que no sea un enlace válido de YouTube.",
+      emptyMelody: "Introduce notas, por ejemplo: 4 5 3 6 4 5 6 -",
+      invalidToken: "No se pudo leer: {token}. Usa 1-7, o alteraciones como 5b y 5#.",
+      invalidYoutube: "Introduce un enlace válido de YouTube.",
+      instruments: {
+        piano: "Piano",
+        electric: "E.Piano",
+        kalimba: "Kalimba",
+        musicbox: "Caja musical",
+        marimba: "Marimba",
+        harp: "Arpa",
+        strings: "Cuerdas",
+        organ: "Organo",
+        pad: "Pad",
+        guitar: "Guitarra",
+        solfege: "Solfeo",
+      },
+    },
+  };
   const SOLFEGE_LABELS = ["do", "re", "mi", "fa", "sol", "la", "si"];
   const SOLFEGE_VOWELS = {
     do: [700, 1080],
@@ -629,6 +897,7 @@
   let outputGain = null;
   let volume = 1;
   let selectedInstrument = "kalimba";
+  let selectedLanguage = "en";
   let whiteKeys = [];
   let blackKeys = [];
   let accompanimentEntries = [];
@@ -640,6 +909,49 @@
   const pointerState = new Map();
   let audioRecoveryTimer = null;
   const INSTRUMENT_STORAGE_KEY = "transpose-piano-instrument";
+  const LANGUAGE_STORAGE_KEY = "transpose-piano-language";
+
+  function text(key) {
+    return (UI_TEXT[selectedLanguage] && UI_TEXT[selectedLanguage][key]) || UI_TEXT.en[key] || key;
+  }
+
+  function instrumentLabel(instrumentId) {
+    const labels = (UI_TEXT[selectedLanguage] && UI_TEXT[selectedLanguage].instruments) || UI_TEXT.en.instruments;
+    return labels[instrumentId] || UI_TEXT.en.instruments[instrumentId] || instrumentId;
+  }
+
+  function languageMeta(languageId = selectedLanguage) {
+    return LANGUAGES.find((language) => language.id === languageId) || LANGUAGES[0];
+  }
+
+  function normalizeLanguage(languageCode) {
+    const base = String(languageCode || "").toLowerCase().split("-")[0];
+    if (base === "zh") return "zh";
+    if (base === "ja") return "ja";
+    if (base === "ko") return "ko";
+    if (base === "es") return "es";
+    return "en";
+  }
+
+  function readSavedLanguage() {
+    try {
+      const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (LANGUAGES.some((language) => language.id === savedLanguage)) return savedLanguage;
+    } catch (error) {
+      // Ignore storage errors and use the browser language.
+    }
+
+    const browserLanguage = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
+    return normalizeLanguage(browserLanguage);
+  }
+
+  function saveLanguage(languageId) {
+    try {
+      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, languageId);
+    } catch (error) {
+      // Storage can be unavailable in private browsing; the app should still work.
+    }
+  }
 
   function readSavedInstrument() {
     try {
@@ -1118,9 +1430,10 @@
     selectedInstrument = instrumentId;
     const instrument = currentInstrument();
     saveInstrument(instrument.id);
-    toneButton.textContent = instrument.label;
-    toneButton.title = instrument.label;
-    toneButton.setAttribute("aria-label", "当前音色：" + instrument.label);
+    const label = instrumentLabel(instrument.id);
+    toneButton.textContent = text("tone");
+    toneButton.title = label;
+    toneButton.setAttribute("aria-label", text("currentTone") + label);
     Array.from(tonePopover.children).forEach((button) => {
       button.classList.toggle("active", button.dataset.instrument === instrument.id);
     });
@@ -1133,10 +1446,80 @@
       button.type = "button";
       button.className = "tone-option";
       button.dataset.instrument = instrument.id;
-      button.textContent = instrument.label;
+      button.textContent = instrumentLabel(instrument.id);
       button.addEventListener("click", () => setInstrument(instrument.id));
       tonePopover.appendChild(button);
     });
+  }
+
+  function renderLanguageSelector() {
+    languagePopover.innerHTML = "";
+    LANGUAGES.forEach((language) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "language-option";
+      button.dataset.language = language.id;
+      button.textContent = language.label;
+      button.addEventListener("click", () => setLanguage(language.id));
+      languagePopover.appendChild(button);
+    });
+  }
+
+  function refreshToneLabels() {
+    Array.from(tonePopover.children).forEach((button) => {
+      button.textContent = instrumentLabel(button.dataset.instrument);
+    });
+    const instrument = currentInstrument();
+    const label = instrumentLabel(instrument.id);
+    toneButton.textContent = text("tone");
+    toneButton.title = label;
+    toneButton.setAttribute("aria-label", text("currentTone") + label);
+    tonePopover.setAttribute("aria-label", text("toneMenu"));
+  }
+
+  function applyLanguage() {
+    const meta = languageMeta();
+    document.documentElement.lang = selectedLanguage === "zh" ? "zh-CN" : selectedLanguage;
+    document.title = text("appTitle");
+
+    languageButton.textContent = meta.short;
+    languageButton.title = text("language");
+    languageButton.setAttribute("aria-label", text("language") + ": " + meta.label);
+    languagePopover.setAttribute("aria-label", text("language"));
+    Array.from(languagePopover.children).forEach((button) => {
+      button.classList.toggle("active", button.dataset.language === selectedLanguage);
+    });
+
+    refreshToneLabels();
+    accompanimentButton.textContent = text("accompaniment");
+    accompanimentButton.title = text("accompaniment");
+    accompanimentButton.setAttribute("aria-label", text("accompaniment"));
+    videoButton.textContent = text("video");
+    videoButton.title = text("youtubeTitle");
+    videoButton.setAttribute("aria-label", text("youtubeTitle"));
+    videoFrame.title = text("youtubeFrame");
+
+    videoTitle.textContent = text("youtubeTitle");
+    videoHelp.textContent = text("videoHelp");
+    videoUrl.setAttribute("aria-label", text("youtubeUrl"));
+    videoCancel.textContent = text("cancel");
+    videoForm.querySelector('button[type="submit"]').textContent = text("openVideo");
+
+    accompanimentTitle.textContent = text("melodyTitle");
+    accompanimentHelp.textContent = text("melodyHelp");
+    noteText.setAttribute("aria-label", text("noteInput"));
+    tempoLabel.textContent = text("tempo");
+    tempoSlider.setAttribute("aria-label", text("bpm"));
+    brokenLabel.textContent = text("broken");
+    accompanimentCancel.textContent = text("cancel");
+    accompanimentForm.querySelector('button[type="submit"]').textContent = text("start");
+  }
+
+  function setLanguage(languageId) {
+    selectedLanguage = LANGUAGES.some((language) => language.id === languageId) ? languageId : "en";
+    saveLanguage(selectedLanguage);
+    applyLanguage();
+    languageControl.classList.remove("open");
   }
 
   function parseMelodyToken(token) {
@@ -1252,7 +1635,7 @@
     });
 
     accompanimentEntries = entries;
-    accompanimentNotice.textContent = isBroken ? "准备 4 拍后开始分解伴奏。" : "准备 4 拍后开始单音伴奏。";
+    accompanimentNotice.textContent = isBroken ? text("readyBroken") : text("readyMelody");
   }
 
   function openAccompanimentDialog() {
@@ -1292,7 +1675,7 @@
 
   async function openVideoDialog() {
     videoError.textContent = "";
-    videoNotice.textContent = "正在请求剪贴板访问权限...";
+    videoNotice.textContent = text("clipboardRequest");
     videoModal.classList.add("open");
     requestAnimationFrame(() => videoUrl.focus());
     const clipboardText = await requestClipboardText();
@@ -1300,11 +1683,11 @@
 
     videoUrl.value = trimmedText;
     if (!trimmedText) {
-      videoNotice.textContent = "无法读取剪贴板，请输入 YouTube 链接。";
+      videoNotice.textContent = text("clipboardEmpty");
     } else if (youtubeVideoId(trimmedText)) {
-      videoNotice.textContent = "已从剪贴板填入 YouTube 链接，请确认后打开。";
+      videoNotice.textContent = text("clipboardYoutube");
     } else {
-      videoNotice.textContent = "已填入剪贴板内容，但它可能不是有效的 YouTube 链接。";
+      videoNotice.textContent = text("clipboardMaybe");
     }
   }
 
@@ -1414,9 +1797,15 @@
     }
   }
 
+  languageButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    languageControl.classList.toggle("open");
+    toneControl.classList.remove("open");
+  });
   toneButton.addEventListener("click", (event) => {
     event.stopPropagation();
     toneControl.classList.toggle("open");
+    languageControl.classList.remove("open");
   });
   accompanimentButton.addEventListener("click", openAccompanimentDialog);
   accompanimentCancel.addEventListener("click", closeAccompanimentDialog);
@@ -1432,11 +1821,11 @@
     const parsed = parseMelody(noteText.value);
     const invalid = parsed.find((item) => !item.note);
     if (!parsed.length) {
-      accompanimentError.textContent = "请输入单音，例如：4 5 3 6 4 5 6 -";
+      accompanimentError.textContent = text("emptyMelody");
       return;
     }
     if (invalid) {
-      accompanimentError.textContent = "无法识别：" + invalid.token + "。请使用 1-7，或 5b、5# 这样的写法。";
+      accompanimentError.textContent = text("invalidToken").replace("{token}", invalid.token);
       return;
     }
 
@@ -1453,7 +1842,7 @@
     event.preventDefault();
     const videoId = youtubeVideoId(videoUrl.value);
     if (!videoId) {
-      videoError.textContent = "请输入有效的 YouTube 视频链接。";
+      videoError.textContent = text("invalidYoutube");
       return;
     }
     loadYouTubeVideo(videoId);
@@ -1461,6 +1850,9 @@
   document.addEventListener("pointerdown", (event) => {
     if (!toneControl.contains(event.target)) {
       toneControl.classList.remove("open");
+    }
+    if (!languageControl.contains(event.target)) {
+      languageControl.classList.remove("open");
     }
   });
   keyboardScroll.addEventListener("pointerdown", onPointerDown);
@@ -1487,8 +1879,11 @@
   }
 
   renderSelector();
+  selectedLanguage = readSavedLanguage();
+  renderLanguageSelector();
   renderToneSelector();
   selectedInstrument = readSavedInstrument();
+  applyLanguage();
   setInstrument(selectedInstrument);
   setKey(0);
 })();
