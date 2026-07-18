@@ -583,6 +583,10 @@
       <input id="broken-toggle" type="checkbox">
       <span id="broken-label">分解</span>
     </label>
+    <label class="pattern-row">
+      <input id="loop-toggle" type="checkbox" checked>
+      <span id="loop-label">循环播放</span>
+    </label>
     <div id="accompaniment-notice" aria-live="polite"></div>
     <div id="accompaniment-error" aria-live="polite"></div>
     <div class="accompaniment-actions">
@@ -621,6 +625,7 @@
   const tempoSlider = document.getElementById("tempo-slider");
   const tempoValue = document.getElementById("tempo-value");
   const brokenToggle = document.getElementById("broken-toggle");
+  const loopToggle = document.getElementById("loop-toggle");
   const accompanimentNotice = document.getElementById("accompaniment-notice");
   const accompanimentError = document.getElementById("accompaniment-error");
   const app = document.getElementById("app");
@@ -638,6 +643,7 @@
   const accompanimentHelp = document.getElementById("accompaniment-help");
   const tempoLabel = document.getElementById("tempo-label");
   const brokenLabel = document.getElementById("broken-label");
+  const loopLabel = document.getElementById("loop-label");
 
   const INSTRUMENTS = [
     { id: "piano", wave: "triangle", partials: [1, 2, 3, 4.1], levels: [1, 0.34, 0.18, 0.08], attack: 0.006, decay: 3.3, brightness: 3800 },
@@ -680,6 +686,7 @@
       tempo: "Tempo",
       bpm: "beats per minute",
       broken: "Broken",
+      loop: "Loop",
       start: "Start",
       readyBroken: "Starting broken melody after 4 prep beats.",
       readyMelody: "Starting melody after 4 prep beats.",
@@ -724,6 +731,7 @@
       tempo: "速度",
       bpm: "每分钟拍数",
       broken: "分解",
+      loop: "循环播放",
       start: "开始",
       readyBroken: "准备 4 拍后开始分解伴奏。",
       readyMelody: "准备 4 拍后开始单音伴奏。",
@@ -768,6 +776,7 @@
       tempo: "テンポ",
       bpm: "BPM",
       broken: "分解",
+      loop: "ループ再生",
       start: "開始",
       readyBroken: "4拍の準備音の後、分解伴奏を始めます。",
       readyMelody: "4拍の準備音の後、単音伴奏を始めます。",
@@ -812,6 +821,7 @@
       tempo: "템포",
       bpm: "분당 박자",
       broken: "분해",
+      loop: "반복 재생",
       start: "시작",
       readyBroken: "준비 4박 후 분해 반주를 시작합니다.",
       readyMelody: "준비 4박 후 단음 반주를 시작합니다.",
@@ -856,6 +866,7 @@
       tempo: "Tempo",
       bpm: "pulsos por minuto",
       broken: "Arpegio",
+      loop: "Repetir",
       start: "Iniciar",
       readyBroken: "El arpegio empieza después de 4 pulsos de preparación.",
       readyMelody: "La melodía empieza después de 4 pulsos de preparación.",
@@ -901,6 +912,7 @@
   let whiteKeys = [];
   let blackKeys = [];
   let accompanimentEntries = [];
+  let accompanimentLoopTimer = null;
   let speechTimers = [];
 
   const activeNotes = new Set();
@@ -910,6 +922,7 @@
   let audioRecoveryTimer = null;
   const INSTRUMENT_STORAGE_KEY = "transpose-piano-instrument";
   const LANGUAGE_STORAGE_KEY = "transpose-piano-language";
+  const ACCOMPANIMENT_SETTINGS_KEY = "transpose-piano-accompaniment";
 
   function text(key) {
     return (UI_TEXT[selectedLanguage] && UI_TEXT[selectedLanguage][key]) || UI_TEXT.en[key] || key;
@@ -970,6 +983,52 @@
     }
   }
 
+  function readSavedAccompanimentSettings() {
+    const defaults = {
+      notes: noteText.value,
+      bpm: Number(tempoSlider.value) || 70,
+      broken: brokenToggle.checked,
+      loop: true,
+    };
+
+    try {
+      const rawSettings = window.localStorage.getItem(ACCOMPANIMENT_SETTINGS_KEY);
+      if (!rawSettings) return defaults;
+      const settings = JSON.parse(rawSettings);
+      const bpm = Number(settings.bpm);
+      return {
+        notes: typeof settings.notes === "string" ? settings.notes : defaults.notes,
+        bpm: Number.isFinite(bpm) ? Math.min(180, Math.max(40, bpm)) : defaults.bpm,
+        broken: Boolean(settings.broken),
+        loop: settings.loop !== false,
+      };
+    } catch (error) {
+      return defaults;
+    }
+  }
+
+  function saveAccompanimentSettings() {
+    try {
+      window.localStorage.setItem(ACCOMPANIMENT_SETTINGS_KEY, JSON.stringify({
+        notes: noteText.value,
+        bpm: Number(tempoSlider.value) || 70,
+        broken: brokenToggle.checked,
+        loop: loopToggle.checked,
+      }));
+    } catch (error) {
+      // Storage can be unavailable in private browsing; the app should still work.
+    }
+  }
+
+  function applyAccompanimentSettings() {
+    const settings = readSavedAccompanimentSettings();
+    noteText.value = settings.notes;
+    tempoSlider.value = String(settings.bpm);
+    tempoValue.textContent = tempoSlider.value + " BPM";
+    brokenToggle.checked = settings.broken;
+    loopToggle.checked = settings.loop;
+  }
+
   function keyTop() {
     const value = getComputedStyle(document.body).getPropertyValue("--key-top");
     return Number.parseFloat(value) || 16;
@@ -1009,6 +1068,10 @@
   function resetAudioContext() {
     oscMap.forEach(stopOscillators);
     oscMap.clear();
+    if (accompanimentLoopTimer) {
+      window.clearTimeout(accompanimentLoopTimer);
+      accompanimentLoopTimer = null;
+    }
     accompanimentEntries.forEach((entry) => {
       entry.oscs.forEach((osc) => {
         try {
@@ -1511,6 +1574,7 @@
     tempoLabel.textContent = text("tempo");
     tempoSlider.setAttribute("aria-label", text("bpm"));
     brokenLabel.textContent = text("broken");
+    loopLabel.textContent = text("loop");
     accompanimentCancel.textContent = text("cancel");
     accompanimentForm.querySelector('button[type="submit"]').textContent = text("start");
   }
@@ -1596,6 +1660,10 @@
   }
 
   function stopAccompaniment() {
+    if (accompanimentLoopTimer) {
+      window.clearTimeout(accompanimentLoopTimer);
+      accompanimentLoopTimer = null;
+    }
     stopSpeech();
     accompanimentEntries.forEach((entry) => {
       entry.oscs.forEach((osc) => {
@@ -1609,19 +1677,19 @@
     accompanimentEntries = [];
   }
 
-  function startAccompaniment(notes, bpm, isBroken) {
-    stopAccompaniment();
-    ensureAudioForPlayback();
-
-    const beatSeconds = 60 / bpm;
+  function scheduleAccompanimentCycle(notes, beatSeconds, isBroken, includePrep) {
+    if (!audioCtx) return;
     const now = audioCtx.currentTime + 0.08;
     const entries = [];
+    let melodyStart = now;
 
-    for (let beat = 0; beat < 4; beat += 1) {
-      entries.push({ oscs: playClick(now + beat * beatSeconds, beat === 0) });
+    if (includePrep) {
+      for (let beat = 0; beat < 4; beat += 1) {
+        entries.push({ oscs: playClick(now + beat * beatSeconds, beat === 0) });
+      }
+      melodyStart = now + 4 * beatSeconds;
     }
 
-    const melodyStart = now + 4 * beatSeconds;
     notes.forEach((item, index) => {
       const startTime = melodyStart + index * beatSeconds * 2;
       if (item.note.midi === null) return;
@@ -1635,6 +1703,23 @@
     });
 
     accompanimentEntries = entries;
+
+    if (loopToggle.checked) {
+      const cycleEnd = melodyStart + notes.length * beatSeconds * 2;
+      const delayMs = Math.max(0, (cycleEnd - audioCtx.currentTime - 0.02) * 1000);
+      accompanimentLoopTimer = window.setTimeout(() => {
+        accompanimentLoopTimer = null;
+        scheduleAccompanimentCycle(notes, beatSeconds, isBroken, false);
+      }, delayMs);
+    }
+  }
+
+  function startAccompaniment(notes, bpm, isBroken) {
+    stopAccompaniment();
+    ensureAudioForPlayback();
+
+    const beatSeconds = 60 / bpm;
+    scheduleAccompanimentCycle(notes, beatSeconds, isBroken, true);
     accompanimentNotice.textContent = isBroken ? text("readyBroken") : text("readyMelody");
   }
 
@@ -1814,8 +1899,14 @@
   });
   tempoSlider.addEventListener("input", () => {
     tempoValue.textContent = tempoSlider.value + " BPM";
+    saveAccompanimentSettings();
   });
-  noteText.addEventListener("input", formatNoteInput);
+  brokenToggle.addEventListener("change", saveAccompanimentSettings);
+  loopToggle.addEventListener("change", saveAccompanimentSettings);
+  noteText.addEventListener("input", (event) => {
+    formatNoteInput(event);
+    saveAccompanimentSettings();
+  });
   accompanimentForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const parsed = parseMelody(noteText.value);
@@ -1830,6 +1921,7 @@
     }
 
     accompanimentError.textContent = "";
+    saveAccompanimentSettings();
     startAccompaniment(parsed, Number(tempoSlider.value), brokenToggle.checked);
     closeAccompanimentDialog();
   });
@@ -1883,6 +1975,7 @@
   renderLanguageSelector();
   renderToneSelector();
   selectedInstrument = readSavedInstrument();
+  applyAccompanimentSettings();
   applyLanguage();
   setInstrument(selectedInstrument);
   setKey(0);
