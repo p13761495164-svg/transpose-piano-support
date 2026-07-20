@@ -126,6 +126,14 @@
     background: #fff;
   }
 
+  #record-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 6px 8px 6px 0;
+    background: #fff;
+  }
+
   #accompaniment-control {
     flex-shrink: 0;
     display: flex;
@@ -136,7 +144,8 @@
 
   #tone-button,
   #language-button,
-  #accompaniment-button {
+  #accompaniment-button,
+  #record-button {
     min-width: 56px;
     max-width: 108px;
     height: 36px;
@@ -174,9 +183,16 @@
   #language-button:active,
   #language-control.open #language-button,
   #accompaniment-button:active,
+  #record-button:active,
   #video-button:active {
     background: #f0f0f0;
     border-color: #999;
+  }
+
+  #record-button.recording {
+    border-color: #dc2626;
+    background: #dc2626;
+    color: #fff;
   }
 
   #tone-popover,
@@ -476,6 +492,31 @@
     box-shadow: none;
   }
 
+  .c-label {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 700;
+    pointer-events: none;
+  }
+
+  .c-label.central {
+    color: #dc2626;
+  }
+
+  .black-key .c-label {
+    bottom: 7px;
+    color: #d1d5db;
+    font-size: 10px;
+  }
+
+  .black-key .c-label.central {
+    color: #ef4444;
+  }
+
   .black-key {
     width: 43px;
     height: 60%;
@@ -532,11 +573,13 @@
     }
 
     #accompaniment-control,
+    #record-control,
     #video-control { padding: 3px 5px 3px 0; }
 
     #tone-button,
     #language-button,
-    #accompaniment-button {
+    #accompaniment-button,
+    #record-button {
       min-width: 40px;
       height: 32px;
       padding: 0 7px;
@@ -573,6 +616,9 @@
     </div>
     <div id="accompaniment-control">
       <button id="accompaniment-button" type="button" title="单音伴奏" aria-label="单音伴奏">伴奏</button>
+    </div>
+    <div id="record-control">
+      <button id="record-button" type="button" title="录音" aria-label="录音">录音</button>
     </div>
     <div id="video-control">
       <button id="video-button" type="button" title="YouTube 伴奏练习" aria-label="YouTube 伴奏练习">视频</button>
@@ -655,6 +701,7 @@
   const toneButton = document.getElementById("tone-button");
   const tonePopover = document.getElementById("tone-popover");
   const accompanimentButton = document.getElementById("accompaniment-button");
+  const recordButton = document.getElementById("record-button");
   const accompanimentModal = document.getElementById("accompaniment-modal");
   const accompanimentForm = document.getElementById("accompaniment-form");
   const accompanimentCancel = document.getElementById("accompaniment-cancel");
@@ -710,6 +757,8 @@
       toneMenu: "Tone selection",
       currentTone: "Current tone: ",
       accompaniment: "Auto",
+      record: "Rec",
+      recording: "Save",
       video: "Video",
       youtubeTitle: "YouTube Practice",
       youtubeFrame: "YouTube Video",
@@ -734,6 +783,7 @@
       emptyMelody: "Enter notes, for example: 4 5 3 6 4 5 6 -",
       invalidToken: "Could not read: {token}. Use 1-7, or accidentals like 5b and 5#.",
       invalidYoutube: "Enter a valid YouTube video link.",
+      noRecording: "No notes were recorded.",
       instruments: {
         piano: "Piano",
         electric: "E.Piano",
@@ -755,6 +805,8 @@
       toneMenu: "音色选择",
       currentTone: "当前音色：",
       accompaniment: "伴奏",
+      record: "录音",
+      recording: "保存",
       video: "视频",
       youtubeTitle: "YouTube 伴奏练习",
       youtubeFrame: "YouTube 视频",
@@ -779,6 +831,7 @@
       emptyMelody: "请输入单音，例如：4 5 3 6 4 5 6 -",
       invalidToken: "无法识别：{token}。请使用 1-7，或 5b、5# 这样的写法。",
       invalidYoutube: "请输入有效的 YouTube 视频链接。",
+      noRecording: "没有录到音符。",
       instruments: {
         piano: "原声钢琴",
         electric: "电钢琴",
@@ -800,6 +853,8 @@
       toneMenu: "音色選択",
       currentTone: "現在の音色: ",
       accompaniment: "伴奏",
+      record: "録音",
+      recording: "保存",
       video: "動画",
       youtubeTitle: "YouTube 練習",
       youtubeFrame: "YouTube 動画",
@@ -824,6 +879,7 @@
       emptyMelody: "単音を入力してください。例: 4 5 3 6 4 5 6 -",
       invalidToken: "読み取れません: {token}。1-7、または 5b、5# のように入力してください。",
       invalidYoutube: "有効な YouTube 動画リンクを入力してください。",
+      noRecording: "録音された音符がありません。",
       instruments: {
         piano: "ピアノ",
         electric: "E.ピアノ",
@@ -845,6 +901,8 @@
       toneMenu: "음색 선택",
       currentTone: "현재 음색: ",
       accompaniment: "반주",
+      record: "녹음",
+      recording: "저장",
       video: "영상",
       youtubeTitle: "YouTube 연습",
       youtubeFrame: "YouTube 영상",
@@ -869,6 +927,7 @@
       emptyMelody: "단음을 입력하세요. 예: 4 5 3 6 4 5 6 -",
       invalidToken: "읽을 수 없음: {token}. 1-7 또는 5b, 5#처럼 입력하세요.",
       invalidYoutube: "유효한 YouTube 영상 링크를 입력하세요.",
+      noRecording: "녹음된 음표가 없습니다.",
       instruments: {
         piano: "피아노",
         electric: "E.피아노",
@@ -890,6 +949,8 @@
       toneMenu: "Selección de tono",
       currentTone: "Tono actual: ",
       accompaniment: "Auto",
+      record: "Grabar",
+      recording: "Guardar",
       video: "Video",
       youtubeTitle: "Práctica con YouTube",
       youtubeFrame: "Video de YouTube",
@@ -914,6 +975,7 @@
       emptyMelody: "Introduce notas, por ejemplo: 4 5 3 6 4 5 6 -",
       invalidToken: "No se pudo leer: {token}. Usa 1-7, o alteraciones como 5b y 5#.",
       invalidYoutube: "Introduce un enlace válido de YouTube.",
+      noRecording: "No se grabaron notas.",
       instruments: {
         piano: "Piano",
         electric: "E.Piano",
@@ -951,6 +1013,9 @@
   let accompanimentEntries = [];
   let accompanimentLoopTimer = null;
   let speechTimers = [];
+  let isRecording = false;
+  let recordingStartTime = 0;
+  let recordedNotes = [];
 
   const activeNotes = new Set();
   const oscMap = new Map();
@@ -1064,6 +1129,136 @@
     tempoValue.textContent = tempoSlider.value + " BPM";
     brokenToggle.checked = settings.broken;
     loopToggle.checked = settings.loop;
+  }
+
+  function currentMidiDuration() {
+    const selected = currentInstrument();
+    if (selected.id === "solfege") return 0.78;
+    const instrument = selected.id === "solfege" ? INSTRUMENTS[2] : selected;
+    return Math.max(0.24, instrument.decay || DECAY);
+  }
+
+  function recordMidiNote(midi, startTime, duration, channel = 0, velocity = 92) {
+    if (!isRecording || !Number.isFinite(startTime) || !Number.isFinite(duration)) return;
+    const start = Math.max(0, startTime - recordingStartTime);
+    const end = Math.max(start + 0.05, startTime + duration - recordingStartTime);
+    recordedNotes.push({
+      midi: Math.max(0, Math.min(127, Math.round(midi))),
+      start,
+      duration: end - start,
+      channel: Math.max(0, Math.min(15, channel)),
+      velocity: Math.max(1, Math.min(127, velocity)),
+    });
+  }
+
+  function variableLengthBytes(value) {
+    let buffer = value & 0x7f;
+    const bytes = [];
+    while ((value >>= 7)) {
+      buffer <<= 8;
+      buffer |= ((value & 0x7f) | 0x80);
+    }
+    while (true) {
+      bytes.push(buffer & 0xff);
+      if (buffer & 0x80) buffer >>= 8;
+      else break;
+    }
+    return bytes;
+  }
+
+  function uint32Bytes(value) {
+    return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff];
+  }
+
+  function uint16Bytes(value) {
+    return [(value >>> 8) & 0xff, value & 0xff];
+  }
+
+  function asciiBytes(value) {
+    return Array.from(value).map((char) => char.charCodeAt(0) & 0xff);
+  }
+
+  function buildMidiFile(notes) {
+    const ticksPerQuarter = 480;
+    const microsecondsPerQuarter = 500000;
+    const ticksPerSecond = ticksPerQuarter * 1000000 / microsecondsPerQuarter;
+    const events = [];
+
+    notes.forEach((note) => {
+      const startTick = Math.max(0, Math.round(note.start * ticksPerSecond));
+      const endTick = Math.max(startTick + 24, Math.round((note.start + note.duration) * ticksPerSecond));
+      events.push({ tick: startTick, order: 1, data: [0x90 + note.channel, note.midi, note.velocity] });
+      events.push({ tick: endTick, order: 0, data: [0x80 + note.channel, note.midi, 0] });
+    });
+
+    events.sort((a, b) => a.tick - b.tick || a.order - b.order);
+
+    const track = [
+      0x00, 0xff, 0x51, 0x03,
+      (microsecondsPerQuarter >>> 16) & 0xff,
+      (microsecondsPerQuarter >>> 8) & 0xff,
+      microsecondsPerQuarter & 0xff,
+      0x00, 0xff, 0x03, 0x0f,
+      ...asciiBytes("Transpose Piano"),
+    ];
+
+    let lastTick = 0;
+    events.forEach((event) => {
+      track.push(...variableLengthBytes(event.tick - lastTick), ...event.data);
+      lastTick = event.tick;
+    });
+    track.push(0x00, 0xff, 0x2f, 0x00);
+
+    return new Uint8Array([
+      ...asciiBytes("MThd"),
+      ...uint32Bytes(6),
+      ...uint16Bytes(0),
+      ...uint16Bytes(1),
+      ...uint16Bytes(ticksPerQuarter),
+      ...asciiBytes("MTrk"),
+      ...uint32Bytes(track.length),
+      ...track,
+    ]);
+  }
+
+  function downloadMidi(notes) {
+    const midiBytes = buildMidiFile(notes);
+    const blob = new Blob([midiBytes], { type: "audio/midi" });
+    const url = URL.createObjectURL(blob);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "transpose-piano-" + timestamp + ".mid";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function updateRecordButton() {
+    recordButton.classList.toggle("recording", isRecording);
+    recordButton.textContent = isRecording ? text("recording") : text("record");
+    recordButton.title = isRecording ? text("recording") : text("record");
+    recordButton.setAttribute("aria-label", recordButton.title);
+  }
+
+  function toggleRecording() {
+    ensureAudioForPlayback();
+    if (!isRecording) {
+      isRecording = true;
+      recordingStartTime = audioCtx.currentTime;
+      recordedNotes = [];
+      updateRecordButton();
+      return;
+    }
+
+    isRecording = false;
+    const notes = recordedNotes.slice();
+    updateRecordButton();
+    if (!notes.length) {
+      accompanimentNotice.textContent = text("noRecording");
+    }
+    downloadMidi(notes);
   }
 
   function keyTop() {
@@ -1322,6 +1517,7 @@
     if (currentInstrument().id === "solfege") {
       speakSolfege(midi);
       const oscs = playSolfegeFallback(midi, audioCtx.currentTime);
+      recordMidiNote(midi, audioCtx.currentTime, currentMidiDuration(), 0, 96);
       const tid = setTimeout(() => {
         oscMap.delete(midi);
         markActive(midi, false);
@@ -1332,6 +1528,7 @@
     }
 
     const t = audioCtx.currentTime;
+    recordMidiNote(midi, t, currentMidiDuration(), 0, 96);
     const frequency = 440 * Math.pow(2, (midi - 69) / 12);
 
     const selected = currentInstrument();
@@ -1373,8 +1570,9 @@
     return baseMidi + ((pitchClass - (baseMidi % 12) + 12) % 12);
   }
 
-  function playScheduledNote(midi, startTime) {
+  function playScheduledNote(midi, startTime, midiDuration = currentMidiDuration()) {
     ensureAudioForPlayback();
+    recordMidiNote(midi, startTime, midiDuration, 1, 86);
 
     if (currentInstrument().id === "solfege") {
       speakSolfege(midi, startTime);
@@ -1484,11 +1682,20 @@
     keyboardInner.innerHTML = "";
     keyboardInner.style.width = (whiteKeys.length * WHITE_KEY_W + SIDE_PAD * 2) + "px";
 
+    function appendCLabel(el, midi) {
+      if (midi % 12 !== 0) return;
+      const label = document.createElement("span");
+      label.className = "c-label" + (midi === 60 ? " central" : "");
+      label.textContent = "C" + (Math.floor(midi / 12) - 1);
+      el.appendChild(label);
+    }
+
     whiteKeys.forEach((key, index) => {
       const el = document.createElement("div");
       el.className = "white-key";
       el.dataset.midi = String(key.midi);
       el.style.left = (SIDE_PAD + index * WHITE_KEY_W) + "px";
+      appendCLabel(el, key.midi);
       keyboardInner.appendChild(el);
     });
 
@@ -1500,6 +1707,7 @@
       el.className = "black-key";
       el.dataset.midi = String(key.midi);
       el.style.left = (SIDE_PAD + prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - BLACK_KEY_W / 2) + "px";
+      appendCLabel(el, key.midi);
       keyboardInner.appendChild(el);
     });
   }
@@ -1594,6 +1802,7 @@
     accompanimentButton.textContent = text("accompaniment");
     accompanimentButton.title = text("accompaniment");
     accompanimentButton.setAttribute("aria-label", text("accompaniment"));
+    updateRecordButton();
     videoButton.textContent = text("video");
     videoButton.title = text("youtubeTitle");
     videoButton.setAttribute("aria-label", text("youtubeTitle"));
@@ -1733,9 +1942,9 @@
 
       const oscs = isBroken
         ? brokenPattern(item, notes[index + 1]).flatMap((note) => (
-            playScheduledNote(note.midi, startTime + note.step * beatSeconds / 2)
+            playScheduledNote(note.midi, startTime + note.step * beatSeconds / 2, beatSeconds / 2)
           ))
-        : playScheduledNote(item.note.midi, startTime);
+        : playScheduledNote(item.note.midi, startTime, beatSeconds * 2);
       entries.push({ oscs });
     });
 
@@ -1930,6 +2139,7 @@
     languageControl.classList.remove("open");
   });
   accompanimentButton.addEventListener("click", openAccompanimentDialog);
+  recordButton.addEventListener("click", toggleRecording);
   accompanimentCancel.addEventListener("click", closeAccompanimentDialog);
   accompanimentModal.addEventListener("pointerdown", (event) => {
     if (event.target === accompanimentModal) closeAccompanimentDialog();
