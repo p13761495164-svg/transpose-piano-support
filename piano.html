@@ -2091,10 +2091,16 @@
       return;
     }
 
-    const fallbackMidi = selectedKey + 48;
-    const fallbackIndex = whiteKeys.findIndex((key) => key.midi >= fallbackMidi);
+    const fallbackIndex = whiteKeys.findIndex((key) => key.midi >= highlightedRootMidi());
     const keyCenter = SIDE_PAD + Math.max(0, fallbackIndex) * WHITE_KEY_W + WHITE_KEY_W / 2;
     keyboardScroll.scrollLeft = Math.max(0, keyCenter - keyboardScroll.clientWidth / 2);
+  }
+
+  function highlightedRootMidi() {
+    const lowMidi = 54; // F#3
+    const highMidi = 65; // F4
+    const midi = lowMidi + ((selectedKey - (lowMidi % 12) + 12) % 12);
+    return Math.min(highMidi, midi);
   }
 
   function renderKeys() {
@@ -2108,14 +2114,14 @@
     }
 
     function rootOctave(midi) {
-      return Math.floor((midi - selectedKey) / 12);
+      return Math.floor(midi / 12) - 1;
     }
 
     function appendRootLabel(el, midi) {
       if (midi % 12 !== selectedKey) return;
       const label = document.createElement("span");
       const octave = rootOctave(midi);
-      label.className = "c-label" + (octave === 4 ? " central" : "");
+      label.className = "c-label" + (midi === highlightedRootMidi() ? " central" : "");
       label.textContent = currentRootLabel() + octave;
       el.appendChild(label);
     }
