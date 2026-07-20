@@ -723,6 +723,7 @@
 (() => {
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
+  const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
   const START_MIDI = 21;
   const TOTAL_KEYS = 88;
   const WHITE_KEY_W = 56;
@@ -2151,8 +2152,8 @@
   function setKey(index) {
     selectedKey = index;
 
-    Array.from(keySelectorInner.children).forEach((button, buttonIndex) => {
-      button.classList.toggle("active", buttonIndex === selectedKey);
+    Array.from(keySelectorInner.children).forEach((button) => {
+      button.classList.toggle("active", Number(button.dataset.keyIndex) === selectedKey);
     });
 
     renderKeys();
@@ -2160,11 +2161,12 @@
   }
 
   function renderSelector() {
-    KEY_LABELS.forEach((label, index) => {
+    KEY_ORDER.forEach((index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "key-button";
-      button.textContent = label;
+      button.dataset.keyIndex = String(index);
+      button.textContent = KEY_LABELS[index];
       button.addEventListener("click", () => setKey(index));
       keySelectorInner.appendChild(button);
     });
@@ -2671,7 +2673,7 @@
   applyAccompanimentSettings();
   applyLanguage();
   setInstrument(selectedInstrument);
-  setKey(0);
+  setKey(KEY_ORDER[0]);
 })();
 </script>
 </body>
