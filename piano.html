@@ -130,6 +130,7 @@
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    gap: 6px;
     padding: 6px 8px 6px 0;
     background: #fff;
   }
@@ -145,7 +146,8 @@
   #tone-button,
   #language-button,
   #accompaniment-button,
-  #record-button {
+  #record-button,
+  #discard-record-button {
     min-width: 56px;
     max-width: 108px;
     height: 36px;
@@ -184,6 +186,7 @@
   #language-control.open #language-button,
   #accompaniment-button:active,
   #record-button:active,
+  #discard-record-button:active,
   #video-button:active {
     background: #f0f0f0;
     border-color: #999;
@@ -193,6 +196,15 @@
     border-color: #dc2626;
     background: #dc2626;
     color: #fff;
+  }
+
+  #discard-record-button {
+    display: none;
+    min-width: 72px;
+  }
+
+  #discard-record-button.visible {
+    display: inline-block;
   }
 
   #tone-popover,
@@ -579,7 +591,8 @@
     #tone-button,
     #language-button,
     #accompaniment-button,
-    #record-button {
+    #record-button,
+    #discard-record-button {
       min-width: 40px;
       height: 32px;
       padding: 0 7px;
@@ -619,6 +632,7 @@
     </div>
     <div id="record-control">
       <button id="record-button" type="button" title="录音" aria-label="录音">录音</button>
+      <button id="discard-record-button" type="button" title="废弃重录" aria-label="废弃重录">重录</button>
     </div>
     <div id="video-control">
       <button id="video-button" type="button" title="YouTube 伴奏练习" aria-label="YouTube 伴奏练习">视频</button>
@@ -702,6 +716,7 @@
   const tonePopover = document.getElementById("tone-popover");
   const accompanimentButton = document.getElementById("accompaniment-button");
   const recordButton = document.getElementById("record-button");
+  const discardRecordButton = document.getElementById("discard-record-button");
   const accompanimentModal = document.getElementById("accompaniment-modal");
   const accompanimentForm = document.getElementById("accompaniment-form");
   const accompanimentCancel = document.getElementById("accompaniment-cancel");
@@ -759,6 +774,7 @@
       accompaniment: "Auto",
       record: "Rec",
       recording: "Save",
+      discardRecording: "Retake",
       video: "Video",
       youtubeTitle: "YouTube Practice",
       youtubeFrame: "YouTube Video",
@@ -807,6 +823,7 @@
       accompaniment: "伴奏",
       record: "录音",
       recording: "保存",
+      discardRecording: "废弃重录",
       video: "视频",
       youtubeTitle: "YouTube 伴奏练习",
       youtubeFrame: "YouTube 视频",
@@ -855,6 +872,7 @@
       accompaniment: "伴奏",
       record: "録音",
       recording: "保存",
+      discardRecording: "録り直し",
       video: "動画",
       youtubeTitle: "YouTube 練習",
       youtubeFrame: "YouTube 動画",
@@ -903,6 +921,7 @@
       accompaniment: "반주",
       record: "녹음",
       recording: "저장",
+      discardRecording: "다시 녹음",
       video: "영상",
       youtubeTitle: "YouTube 연습",
       youtubeFrame: "YouTube 영상",
@@ -951,6 +970,7 @@
       accompaniment: "Auto",
       record: "Grabar",
       recording: "Guardar",
+      discardRecording: "Regrabar",
       video: "Video",
       youtubeTitle: "Práctica con YouTube",
       youtubeFrame: "Video de YouTube",
@@ -1240,6 +1260,19 @@
     recordButton.textContent = isRecording ? text("recording") : text("record");
     recordButton.title = isRecording ? text("recording") : text("record");
     recordButton.setAttribute("aria-label", recordButton.title);
+    discardRecordButton.classList.toggle("visible", isRecording);
+    discardRecordButton.textContent = text("discardRecording");
+    discardRecordButton.title = text("discardRecording");
+    discardRecordButton.setAttribute("aria-label", text("discardRecording"));
+  }
+
+  function discardAndRestartRecording() {
+    ensureAudioForPlayback();
+    isRecording = true;
+    recordingStartTime = audioCtx.currentTime;
+    recordedNotes = [];
+    accompanimentNotice.textContent = "";
+    updateRecordButton();
   }
 
   function toggleRecording() {
@@ -2149,6 +2182,7 @@
   });
   accompanimentButton.addEventListener("click", openAccompanimentDialog);
   recordButton.addEventListener("click", toggleRecording);
+  discardRecordButton.addEventListener("click", discardAndRestartRecording);
   accompanimentCancel.addEventListener("click", closeAccompanimentDialog);
   accompanimentModal.addEventListener("pointerdown", (event) => {
     if (event.target === accompanimentModal) closeAccompanimentDialog();
