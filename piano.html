@@ -658,7 +658,7 @@
     </div>
     <div id="midi-control">
       <button id="midi-button" type="button" title="导入" aria-label="导入">导入</button>
-      <input id="midi-file-input" type="file" hidden>
+      <input id="midi-file-input" type="file" accept=".mid,.midi,.musicxml,.xml,audio/midi,audio/x-midi,application/xml,text/xml" hidden>
     </div>
     <div id="video-control">
       <button id="video-button" type="button" title="YouTube 伴奏练习" aria-label="YouTube 伴奏练习">视频</button>
@@ -1612,7 +1612,7 @@
 
     notes.forEach((note) => {
       const startTime = startAt + note.start;
-      const oscs = playScheduledNote(note.midi, startTime, note.duration, false);
+      const oscs = playScheduledNote(note.midi, startTime, note.duration);
       midiPlaybackEntries.push({ oscs });
       scheduleMidiHighlight(note.midi, startTime, note.duration);
     });
