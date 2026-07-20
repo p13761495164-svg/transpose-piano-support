@@ -1682,11 +1682,20 @@
     keyboardInner.innerHTML = "";
     keyboardInner.style.width = (whiteKeys.length * WHITE_KEY_W + SIDE_PAD * 2) + "px";
 
-    function appendCLabel(el, midi) {
-      if (midi % 12 !== 0) return;
+    function currentRootLabel() {
+      return KEY_LABELS[selectedKey].split("/")[0].replace("♭", "b");
+    }
+
+    function rootOctave(midi) {
+      return Math.floor((midi - selectedKey) / 12);
+    }
+
+    function appendRootLabel(el, midi) {
+      if (midi % 12 !== selectedKey) return;
       const label = document.createElement("span");
-      label.className = "c-label" + (midi === 60 ? " central" : "");
-      label.textContent = "C" + (Math.floor(midi / 12) - 1);
+      const octave = rootOctave(midi);
+      label.className = "c-label" + (octave === 4 ? " central" : "");
+      label.textContent = currentRootLabel() + octave;
       el.appendChild(label);
     }
 
@@ -1695,7 +1704,7 @@
       el.className = "white-key";
       el.dataset.midi = String(key.midi);
       el.style.left = (SIDE_PAD + index * WHITE_KEY_W) + "px";
-      appendCLabel(el, key.midi);
+      appendRootLabel(el, key.midi);
       keyboardInner.appendChild(el);
     });
 
@@ -1707,7 +1716,7 @@
       el.className = "black-key";
       el.dataset.midi = String(key.midi);
       el.style.left = (SIDE_PAD + prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - BLACK_KEY_W / 2) + "px";
-      appendCLabel(el, key.midi);
+      appendRootLabel(el, key.midi);
       keyboardInner.appendChild(el);
     });
   }
