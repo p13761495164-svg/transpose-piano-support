@@ -657,8 +657,8 @@
       <button id="discard-record-button" type="button" title="废弃重录" aria-label="废弃重录">重录</button>
     </div>
     <div id="midi-control">
-      <button id="midi-button" type="button" title="导入 MIDI" aria-label="导入 MIDI">MIDI</button>
-      <input id="midi-file-input" type="file" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+      <button id="midi-button" type="button" title="导入" aria-label="导入">导入</button>
+      <input id="midi-file-input" type="file" hidden>
     </div>
     <div id="video-control">
       <button id="video-button" type="button" title="YouTube 伴奏练习" aria-label="YouTube 伴奏练习">视频</button>
@@ -803,7 +803,7 @@
       record: "Rec",
       recording: "Save",
       discardRecording: "Retake",
-      importMidi: "MIDI",
+      importScore: "Import",
       video: "Video",
       youtubeTitle: "YouTube Practice",
       youtubeFrame: "YouTube Video",
@@ -829,8 +829,8 @@
       invalidToken: "Could not read: {token}. Use 1-7, or accidentals like 5b and 5#.",
       invalidYoutube: "Enter a valid YouTube video link.",
       noRecording: "No notes were recorded.",
-      midiImportError: "Could not read this MIDI file.",
-      midiNoNotes: "No playable notes were found in this MIDI file.",
+      scoreImportError: "Could not read this MIDI or MusicXML file.",
+      scoreNoNotes: "No playable notes were found in this file.",
       instruments: {
         piano: "Piano",
         electric: "E.Piano",
@@ -855,7 +855,7 @@
       record: "录音",
       recording: "保存",
       discardRecording: "废弃重录",
-      importMidi: "MIDI",
+      importScore: "导入",
       video: "视频",
       youtubeTitle: "YouTube 伴奏练习",
       youtubeFrame: "YouTube 视频",
@@ -881,8 +881,8 @@
       invalidToken: "无法识别：{token}。请使用 1-7，或 5b、5# 这样的写法。",
       invalidYoutube: "请输入有效的 YouTube 视频链接。",
       noRecording: "没有录到音符。",
-      midiImportError: "无法读取这个 MIDI 文件。",
-      midiNoNotes: "这个 MIDI 文件里没有可播放的音符。",
+      scoreImportError: "无法读取这个 MIDI 或 MusicXML 文件。",
+      scoreNoNotes: "这个文件里没有可播放的音符。",
       instruments: {
         piano: "原声钢琴",
         electric: "电钢琴",
@@ -907,7 +907,7 @@
       record: "録音",
       recording: "保存",
       discardRecording: "録り直し",
-      importMidi: "MIDI",
+      importScore: "読込",
       video: "動画",
       youtubeTitle: "YouTube 練習",
       youtubeFrame: "YouTube 動画",
@@ -933,8 +933,8 @@
       invalidToken: "読み取れません: {token}。1-7、または 5b、5# のように入力してください。",
       invalidYoutube: "有効な YouTube 動画リンクを入力してください。",
       noRecording: "録音された音符がありません。",
-      midiImportError: "この MIDI ファイルを読み取れません。",
-      midiNoNotes: "この MIDI ファイルに再生できる音符がありません。",
+      scoreImportError: "この MIDI または MusicXML ファイルを読み取れません。",
+      scoreNoNotes: "このファイルに再生できる音符がありません。",
       instruments: {
         piano: "ピアノ",
         electric: "E.ピアノ",
@@ -959,7 +959,7 @@
       record: "녹음",
       recording: "저장",
       discardRecording: "다시 녹음",
-      importMidi: "MIDI",
+      importScore: "가져오기",
       video: "영상",
       youtubeTitle: "YouTube 연습",
       youtubeFrame: "YouTube 영상",
@@ -985,8 +985,8 @@
       invalidToken: "읽을 수 없음: {token}. 1-7 또는 5b, 5#처럼 입력하세요.",
       invalidYoutube: "유효한 YouTube 영상 링크를 입력하세요.",
       noRecording: "녹음된 음표가 없습니다.",
-      midiImportError: "이 MIDI 파일을 읽을 수 없습니다.",
-      midiNoNotes: "이 MIDI 파일에 재생할 수 있는 음표가 없습니다.",
+      scoreImportError: "이 MIDI 또는 MusicXML 파일을 읽을 수 없습니다.",
+      scoreNoNotes: "이 파일에 재생할 수 있는 음표가 없습니다.",
       instruments: {
         piano: "피아노",
         electric: "E.피아노",
@@ -1011,7 +1011,7 @@
       record: "Grabar",
       recording: "Guardar",
       discardRecording: "Regrabar",
-      importMidi: "MIDI",
+      importScore: "Importar",
       video: "Video",
       youtubeTitle: "Práctica con YouTube",
       youtubeFrame: "Video de YouTube",
@@ -1037,8 +1037,8 @@
       invalidToken: "No se pudo leer: {token}. Usa 1-7, o alteraciones como 5b y 5#.",
       invalidYoutube: "Introduce un enlace válido de YouTube.",
       noRecording: "No se grabaron notas.",
-      midiImportError: "No se pudo leer este archivo MIDI.",
-      midiNoNotes: "No se encontraron notas reproducibles en este archivo MIDI.",
+      scoreImportError: "No se pudo leer este archivo MIDI o MusicXML.",
+      scoreNoNotes: "No se encontraron notas reproducibles en este archivo.",
       instruments: {
         piano: "Piano",
         electric: "E.Piano",
@@ -1458,6 +1458,116 @@
       .sort((a, b) => a.start - b.start || a.midi - b.midi);
   }
 
+  function parseMusicXmlFile(xmlText) {
+    const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+    if (doc.querySelector("parsererror")) throw new Error("Invalid MusicXML");
+
+    const stepSemitones = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+    function children(node, name) {
+      return Array.from(node.children || []).filter((child) => child.localName === name);
+    }
+
+    function child(node, name) {
+      return children(node, name)[0] || null;
+    }
+
+    function descendants(node, name) {
+      return Array.from(node.getElementsByTagName("*")).filter((item) => item.localName === name);
+    }
+
+    function textOf(node, name, fallback = "") {
+      const target = child(node, name);
+      return target ? target.textContent.trim() : fallback;
+    }
+
+    function durationSeconds(duration, divisions, tempo) {
+      return Number(duration || 0) / Math.max(1, divisions) * (60 / Math.max(1, tempo));
+    }
+
+    function tempoFromNode(node) {
+      const sound = child(node, "sound") || descendants(node, "sound")[0];
+      if (sound && sound.getAttribute("tempo")) {
+        const value = Number(sound.getAttribute("tempo"));
+        if (Number.isFinite(value) && value > 0) return value;
+      }
+      const perMinute = descendants(node, "per-minute")[0];
+      if (perMinute) {
+        const value = Number(perMinute.textContent.trim());
+        if (Number.isFinite(value) && value > 0) return value;
+      }
+      return null;
+    }
+
+    function pitchToMidi(pitch) {
+      const step = textOf(pitch, "step").toUpperCase();
+      const octave = Number(textOf(pitch, "octave"));
+      const alter = Number(textOf(pitch, "alter", "0"));
+      if (!(step in stepSemitones) || !Number.isFinite(octave)) return null;
+      return (octave + 1) * 12 + stepSemitones[step] + (Number.isFinite(alter) ? alter : 0);
+    }
+
+    let globalTempo = 120;
+    const firstTempo = tempoFromNode(doc.documentElement);
+    if (firstTempo) globalTempo = firstTempo;
+
+    const notes = [];
+    const parts = descendants(doc, "part");
+    parts.forEach((part) => {
+      let divisions = 1;
+      let tempo = globalTempo;
+      let currentTime = 0;
+      let lastNoteStart = 0;
+
+      children(part, "measure").forEach((measure) => {
+        Array.from(measure.children || []).forEach((item) => {
+          if (item.localName === "attributes") {
+            const nextDivisions = Number(textOf(item, "divisions", String(divisions)));
+            if (Number.isFinite(nextDivisions) && nextDivisions > 0) divisions = nextDivisions;
+            return;
+          }
+
+          const nextTempo = tempoFromNode(item);
+          if (nextTempo) tempo = nextTempo;
+
+          if (item.localName === "backup") {
+            currentTime = Math.max(0, currentTime - durationSeconds(textOf(item, "duration", "0"), divisions, tempo));
+            return;
+          }
+
+          if (item.localName === "forward") {
+            currentTime += durationSeconds(textOf(item, "duration", "0"), divisions, tempo);
+            return;
+          }
+
+          if (item.localName !== "note") return;
+
+          const duration = durationSeconds(textOf(item, "duration", "1"), divisions, tempo);
+          const isChord = Boolean(child(item, "chord"));
+          const isRest = Boolean(child(item, "rest"));
+          const start = isChord ? lastNoteStart : currentTime;
+          const pitch = child(item, "pitch");
+          const midi = pitch ? pitchToMidi(pitch) : null;
+
+          if (!isRest && midi !== null && midi >= START_MIDI && midi < START_MIDI + TOTAL_KEYS) {
+            notes.push({ midi, start, duration: Math.max(0.05, duration), velocity: 88 });
+          }
+
+          if (!isChord) {
+            lastNoteStart = start;
+            currentTime += duration;
+          }
+        });
+      });
+    });
+
+    return notes.sort((a, b) => a.start - b.start || a.midi - b.midi);
+  }
+
+  function looksLikeMidi(data) {
+    return data.length >= 4 && data[0] === 0x4d && data[1] === 0x54 && data[2] === 0x68 && data[3] === 0x64;
+  }
+
   function markMidiPlayback(midi, isActive) {
     const current = midiHighlightCounts.get(midi) || 0;
     const next = isActive ? current + 1 : Math.max(0, current - 1);
@@ -1508,18 +1618,22 @@
     });
   }
 
-  async function importMidiFile(file) {
+  async function importScoreFile(file) {
     if (!file) return;
     try {
-      const notes = parseMidiFile(await file.arrayBuffer());
+      const arrayBuffer = await file.arrayBuffer();
+      const data = new Uint8Array(arrayBuffer);
+      const notes = looksLikeMidi(data)
+        ? parseMidiFile(arrayBuffer)
+        : parseMusicXmlFile(new TextDecoder("utf-8").decode(data));
       if (!notes.length) {
-        accompanimentNotice.textContent = text("midiNoNotes");
+        accompanimentNotice.textContent = text("scoreNoNotes");
         return;
       }
       accompanimentNotice.textContent = "";
       playImportedMidi(notes);
     } catch (error) {
-      accompanimentNotice.textContent = text("midiImportError");
+      accompanimentNotice.textContent = text("scoreImportError");
     } finally {
       midiFileInput.value = "";
     }
@@ -2116,9 +2230,9 @@
     accompanimentButton.title = text("accompaniment");
     accompanimentButton.setAttribute("aria-label", text("accompaniment"));
     updateRecordButton();
-    midiButton.textContent = text("importMidi");
-    midiButton.title = text("importMidi");
-    midiButton.setAttribute("aria-label", text("importMidi"));
+    midiButton.textContent = text("importScore");
+    midiButton.title = text("importScore");
+    midiButton.setAttribute("aria-label", text("importScore"));
     videoButton.textContent = text("video");
     videoButton.title = text("youtubeTitle");
     videoButton.setAttribute("aria-label", text("youtubeTitle"));
@@ -2459,7 +2573,7 @@
   recordButton.addEventListener("click", toggleRecording);
   discardRecordButton.addEventListener("click", discardAndRestartRecording);
   midiButton.addEventListener("click", () => midiFileInput.click());
-  midiFileInput.addEventListener("change", () => importMidiFile(midiFileInput.files && midiFileInput.files[0]));
+  midiFileInput.addEventListener("change", () => importScoreFile(midiFileInput.files && midiFileInput.files[0]));
   accompanimentCancel.addEventListener("click", closeAccompanimentDialog);
   accompanimentModal.addEventListener("pointerdown", (event) => {
     if (event.target === accompanimentModal) closeAccompanimentDialog();
