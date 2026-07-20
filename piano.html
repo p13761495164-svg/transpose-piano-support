@@ -793,7 +793,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20260720-cache-v13";
+  const APP_VERSION = "20260720-cache-v14";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
@@ -1244,9 +1244,9 @@
   function readSavedKey() {
     try {
       const savedKey = Number(window.localStorage.getItem(KEY_STORAGE_KEY));
-      return Number.isInteger(savedKey) && savedKey >= 0 && savedKey < KEY_LABELS.length ? savedKey : KEY_ORDER[0];
+      return Number.isInteger(savedKey) && savedKey >= 0 && savedKey < KEY_LABELS.length ? savedKey : 0;
     } catch (error) {
-      return KEY_ORDER[0];
+      return 0;
     }
   }
 
