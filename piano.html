@@ -118,6 +118,15 @@
     background: #fff;
   }
 
+  #tools-control {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    position: relative;
+    padding: 6px 8px 6px 0;
+    background: #fff;
+  }
+
   #video-control {
     flex-shrink: 0;
     display: flex;
@@ -153,6 +162,7 @@
 
   #tone-button,
   #language-button,
+  #tools-button,
   #accompaniment-button,
   #record-button,
   #discard-record-button,
@@ -193,6 +203,8 @@
   #tone-control.open #tone-button,
   #language-button:active,
   #language-control.open #language-button,
+  #tools-button:active,
+  #tools-control.open #tools-button,
   #accompaniment-button:active,
   #record-button:active,
   #discard-record-button:active,
@@ -218,7 +230,8 @@
   }
 
   #tone-popover,
-  #language-popover {
+  #language-popover,
+  #tools-popover {
     display: none;
     position: absolute;
     top: calc(100% + 6px);
@@ -237,14 +250,20 @@
     width: 118px;
   }
 
+  #tools-popover {
+    width: 176px;
+  }
+
   #tone-control.open #tone-popover,
-  #language-control.open #language-popover {
+  #language-control.open #language-popover,
+  #tools-control.open #tools-popover {
     display: grid;
     gap: 2px;
   }
 
   .tone-option,
-  .language-option {
+  .language-option,
+  .tools-action {
     width: 100%;
     padding: 9px 10px;
     border: 0;
@@ -260,9 +279,34 @@
   .tone-option.active,
   .language-option.active,
   .tone-option:active,
-  .language-option:active {
+  .language-option:active,
+  .tools-action:active {
     background: #111;
     color: #fff;
+  }
+
+  .tools-field {
+    padding: 6px;
+  }
+
+  .tools-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  #menu-tone-select {
+    width: 100%;
+    min-height: 36px;
+    padding: 0 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #111;
+    font: inherit;
+    font-size: 13px;
   }
 
   #piano-area {
@@ -577,6 +621,20 @@
     }
   }
 
+  @media (orientation: portrait) {
+    #tone-control,
+    #accompaniment-control,
+    #record-control,
+    #midi-control,
+    #video-control {
+      display: none;
+    }
+
+    #tools-control {
+      display: flex;
+    }
+  }
+
   @media (orientation: landscape) and (max-height: 520px) {
     body {
       --key-top: 4px;
@@ -644,6 +702,20 @@
     <div id="language-control">
       <button id="language-button" type="button" title="Language" aria-label="Language">En</button>
       <div id="language-popover" role="menu" aria-label="Language"></div>
+    </div>
+    <div id="tools-control">
+      <button id="tools-button" type="button" title="功能" aria-label="功能">功能</button>
+      <div id="tools-popover" role="menu" aria-label="功能">
+        <div class="tools-field">
+          <label id="menu-tone-label" for="menu-tone-select">音色</label>
+          <select id="menu-tone-select"></select>
+        </div>
+        <button id="menu-accompaniment-button" class="tools-action" type="button">伴奏</button>
+        <button id="menu-record-button" class="tools-action" type="button">录音</button>
+        <button id="menu-discard-record-button" class="tools-action" type="button">废弃重录</button>
+        <button id="menu-midi-button" class="tools-action" type="button">导入</button>
+        <button id="menu-video-button" class="tools-action" type="button">视频</button>
+      </div>
     </div>
     <div id="tone-control">
       <button id="tone-button" type="button" title="选择音色" aria-label="选择音色">音色</button>
@@ -721,7 +793,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20260720-cache-v11";
+  const APP_VERSION = "20260720-cache-v12";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
@@ -739,6 +811,16 @@
   const languageControl = document.getElementById("language-control");
   const languageButton = document.getElementById("language-button");
   const languagePopover = document.getElementById("language-popover");
+  const toolsControl = document.getElementById("tools-control");
+  const toolsButton = document.getElementById("tools-button");
+  const toolsPopover = document.getElementById("tools-popover");
+  const menuToneLabel = document.getElementById("menu-tone-label");
+  const menuToneSelect = document.getElementById("menu-tone-select");
+  const menuAccompanimentButton = document.getElementById("menu-accompaniment-button");
+  const menuRecordButton = document.getElementById("menu-record-button");
+  const menuDiscardRecordButton = document.getElementById("menu-discard-record-button");
+  const menuMidiButton = document.getElementById("menu-midi-button");
+  const menuVideoButton = document.getElementById("menu-video-button");
   const toneControl = document.getElementById("tone-control");
   const toneButton = document.getElementById("tone-button");
   const tonePopover = document.getElementById("tone-popover");
@@ -798,6 +880,7 @@
     en: {
       appTitle: "Transpose Piano",
       language: "Language",
+      tools: "Tools",
       tone: "Tone",
       toneMenu: "Tone selection",
       currentTone: "Current tone: ",
@@ -850,6 +933,7 @@
     zh: {
       appTitle: "移调钢琴",
       language: "语言",
+      tools: "功能",
       tone: "音色",
       toneMenu: "音色选择",
       currentTone: "当前音色：",
@@ -902,6 +986,7 @@
     ja: {
       appTitle: "移調ピアノ",
       language: "言語",
+      tools: "機能",
       tone: "音色",
       toneMenu: "音色選択",
       currentTone: "現在の音色: ",
@@ -954,6 +1039,7 @@
     ko: {
       appTitle: "조옮김 피아노",
       language: "언어",
+      tools: "기능",
       tone: "음색",
       toneMenu: "음색 선택",
       currentTone: "현재 음색: ",
@@ -1006,6 +1092,7 @@
     es: {
       appTitle: "Piano Transpositor",
       language: "Idioma",
+      tools: "Herramientas",
       tone: "Tono",
       toneMenu: "Selección de tono",
       currentTone: "Tono actual: ",
@@ -1646,10 +1733,17 @@
     recordButton.textContent = isRecording ? text("recording") : text("record");
     recordButton.title = isRecording ? text("recording") : text("record");
     recordButton.setAttribute("aria-label", recordButton.title);
+    menuRecordButton.textContent = isRecording ? text("recording") : text("record");
+    menuRecordButton.title = isRecording ? text("recording") : text("record");
+    menuRecordButton.setAttribute("aria-label", menuRecordButton.title);
     discardRecordButton.classList.toggle("visible", isRecording);
     discardRecordButton.textContent = text("discardRecording");
     discardRecordButton.title = text("discardRecording");
     discardRecordButton.setAttribute("aria-label", text("discardRecording"));
+    menuDiscardRecordButton.hidden = !isRecording;
+    menuDiscardRecordButton.textContent = text("discardRecording");
+    menuDiscardRecordButton.title = text("discardRecording");
+    menuDiscardRecordButton.setAttribute("aria-label", text("discardRecording"));
   }
 
   function discardAndRestartRecording() {
@@ -2184,6 +2278,7 @@
     Array.from(tonePopover.children).forEach((button) => {
       button.classList.toggle("active", button.dataset.instrument === instrument.id);
     });
+    menuToneSelect.value = instrument.id;
     toneControl.classList.remove("open");
   }
 
@@ -2196,6 +2291,11 @@
       button.textContent = instrumentLabel(instrument.id);
       button.addEventListener("click", () => setInstrument(instrument.id));
       tonePopover.appendChild(button);
+
+      const option = document.createElement("option");
+      option.value = instrument.id;
+      option.textContent = instrumentLabel(instrument.id);
+      menuToneSelect.appendChild(option);
     });
   }
 
@@ -2216,11 +2316,15 @@
     Array.from(tonePopover.children).forEach((button) => {
       button.textContent = instrumentLabel(button.dataset.instrument);
     });
+    Array.from(menuToneSelect.options).forEach((option) => {
+      option.textContent = instrumentLabel(option.value);
+    });
     const instrument = currentInstrument();
     const label = instrumentLabel(instrument.id);
     toneButton.textContent = text("tone");
     toneButton.title = label;
     toneButton.setAttribute("aria-label", text("currentTone") + label);
+    menuToneSelect.value = instrument.id;
     tonePopover.setAttribute("aria-label", text("toneMenu"));
   }
 
@@ -2238,10 +2342,21 @@
     });
 
     refreshToneLabels();
+    toolsButton.textContent = text("tools");
+    toolsButton.title = text("tools");
+    toolsButton.setAttribute("aria-label", text("tools"));
+    toolsPopover.setAttribute("aria-label", text("tools"));
+    menuToneLabel.textContent = text("tone");
+    menuAccompanimentButton.textContent = text("accompaniment");
+    menuAccompanimentButton.title = text("accompaniment");
     accompanimentButton.textContent = text("accompaniment");
     accompanimentButton.title = text("accompaniment");
     accompanimentButton.setAttribute("aria-label", text("accompaniment"));
     updateRecordButton();
+    menuMidiButton.textContent = text("importScore");
+    menuMidiButton.title = text("importScore");
+    menuVideoButton.textContent = text("video");
+    menuVideoButton.title = text("youtubeTitle");
     midiButton.textContent = text("importScore");
     midiButton.title = text("importScore");
     midiButton.setAttribute("aria-label", text("importScore"));
@@ -2575,11 +2690,40 @@
     event.stopPropagation();
     languageControl.classList.toggle("open");
     toneControl.classList.remove("open");
+    toolsControl.classList.remove("open");
+  });
+  toolsButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toolsControl.classList.toggle("open");
+    languageControl.classList.remove("open");
+    toneControl.classList.remove("open");
   });
   toneButton.addEventListener("click", (event) => {
     event.stopPropagation();
     toneControl.classList.toggle("open");
     languageControl.classList.remove("open");
+    toolsControl.classList.remove("open");
+  });
+  menuToneSelect.addEventListener("change", () => setInstrument(menuToneSelect.value));
+  menuAccompanimentButton.addEventListener("click", () => {
+    toolsControl.classList.remove("open");
+    openAccompanimentDialog();
+  });
+  menuRecordButton.addEventListener("click", () => {
+    toolsControl.classList.remove("open");
+    toggleRecording();
+  });
+  menuDiscardRecordButton.addEventListener("click", () => {
+    toolsControl.classList.remove("open");
+    discardAndRestartRecording();
+  });
+  menuMidiButton.addEventListener("click", () => {
+    toolsControl.classList.remove("open");
+    midiFileInput.click();
+  });
+  menuVideoButton.addEventListener("click", () => {
+    toolsControl.classList.remove("open");
+    openVideoDialog();
   });
   accompanimentButton.addEventListener("click", openAccompanimentDialog);
   recordButton.addEventListener("click", toggleRecording);
@@ -2638,6 +2782,9 @@
     }
     if (!languageControl.contains(event.target)) {
       languageControl.classList.remove("open");
+    }
+    if (!toolsControl.contains(event.target)) {
+      toolsControl.classList.remove("open");
     }
   });
   keyboardScroll.addEventListener("pointerdown", onPointerDown);
