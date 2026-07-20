@@ -2082,15 +2082,18 @@
     return null;
   }
 
-  function scrollRootToCenter() {
-    const rootMidi = 60 + ((selectedKey - (60 % 12) + 12) % 12);
-    const rootKey =
-      whiteKeys.find((key) => key.midi === rootMidi) ||
-      whiteKeys.find((key) => key.midi === rootMidi - 12) ||
-      whiteKeys[Math.floor(whiteKeys.length / 2)];
+  function scrollHighlightedRootToCenter() {
+    const highlightedLabel = keyboardInner.querySelector(".c-label.central");
+    const highlightedKey = highlightedLabel ? highlightedLabel.parentElement : null;
+    if (highlightedKey) {
+      const keyCenter = highlightedKey.offsetLeft + highlightedKey.offsetWidth / 2;
+      keyboardScroll.scrollLeft = Math.max(0, keyCenter - keyboardScroll.clientWidth / 2);
+      return;
+    }
 
-    const index = Math.max(0, whiteKeys.indexOf(rootKey));
-    const keyCenter = SIDE_PAD + index * WHITE_KEY_W + WHITE_KEY_W / 2;
+    const fallbackMidi = selectedKey + 48;
+    const fallbackIndex = whiteKeys.findIndex((key) => key.midi >= fallbackMidi);
+    const keyCenter = SIDE_PAD + Math.max(0, fallbackIndex) * WHITE_KEY_W + WHITE_KEY_W / 2;
     keyboardScroll.scrollLeft = Math.max(0, keyCenter - keyboardScroll.clientWidth / 2);
   }
 
@@ -2147,7 +2150,7 @@
     });
 
     renderKeys();
-    requestAnimationFrame(scrollRootToCenter);
+    requestAnimationFrame(scrollHighlightedRootToCenter);
   }
 
   function renderSelector() {
@@ -2469,7 +2472,7 @@
     videoFrame.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(videoId) + "?" + params.toString();
     app.classList.add("video-mode");
     closeVideoDialog();
-    requestAnimationFrame(scrollRootToCenter);
+    requestAnimationFrame(scrollHighlightedRootToCenter);
   }
 
   function onPointerDown(event) {
@@ -2634,7 +2637,7 @@
   keyboardScroll.addEventListener("pointercancel", onPointerUp);
   keyboardScroll.addEventListener("lostpointercapture", onPointerUp);
   window.addEventListener("beforeunload", onBeforeUnload);
-  window.addEventListener("resize", () => requestAnimationFrame(scrollRootToCenter));
+  window.addEventListener("resize", () => requestAnimationFrame(scrollHighlightedRootToCenter));
   window.addEventListener("focus", () => resumeAudio(true));
   window.addEventListener("pageshow", () => resumeAudio(true));
   window.addEventListener("pagehide", () => {
