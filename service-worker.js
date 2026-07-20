@@ -1,4 +1,4 @@
-const CACHE_NAME = "transpose-piano-pwa-v4";
+const CACHE_NAME = "transpose-piano-pwa-v5";
 const PRECACHE_URLS = [
   "./",
   "./index.html",

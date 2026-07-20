@@ -126,6 +126,14 @@
     background: #fff;
   }
 
+  #midi-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 6px 8px 6px 0;
+    background: #fff;
+  }
+
   #record-control {
     flex-shrink: 0;
     display: flex;
@@ -147,7 +155,8 @@
   #language-button,
   #accompaniment-button,
   #record-button,
-  #discard-record-button {
+  #discard-record-button,
+  #midi-button {
     min-width: 56px;
     max-width: 108px;
     height: 36px;
@@ -187,6 +196,7 @@
   #accompaniment-button:active,
   #record-button:active,
   #discard-record-button:active,
+  #midi-button:active,
   #video-button:active {
     background: #f0f0f0;
     border-color: #999;
@@ -504,6 +514,11 @@
     box-shadow: none;
   }
 
+  .white-key.midi-playing {
+    background: #fde047;
+    box-shadow: 0 4px 0 rgba(202, 138, 4, 0.35);
+  }
+
   .c-label {
     position: absolute;
     left: 50%;
@@ -540,6 +555,11 @@
 
   .black-key.active {
     background: #444;
+  }
+
+  .black-key.midi-playing {
+    background: #facc15;
+    border-color: #ca8a04;
   }
 
   @media (max-width: 560px) {
@@ -586,13 +606,15 @@
 
     #accompaniment-control,
     #record-control,
+    #midi-control,
     #video-control { padding: 3px 5px 3px 0; }
 
     #tone-button,
     #language-button,
     #accompaniment-button,
     #record-button,
-    #discard-record-button {
+    #discard-record-button,
+    #midi-button {
       min-width: 40px;
       height: 32px;
       padding: 0 7px;
@@ -633,6 +655,10 @@
     <div id="record-control">
       <button id="record-button" type="button" title="录音" aria-label="录音">录音</button>
       <button id="discard-record-button" type="button" title="废弃重录" aria-label="废弃重录">重录</button>
+    </div>
+    <div id="midi-control">
+      <button id="midi-button" type="button" title="导入 MIDI" aria-label="导入 MIDI">MIDI</button>
+      <input id="midi-file-input" type="file" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
     </div>
     <div id="video-control">
       <button id="video-button" type="button" title="YouTube 伴奏练习" aria-label="YouTube 伴奏练习">视频</button>
@@ -717,6 +743,8 @@
   const accompanimentButton = document.getElementById("accompaniment-button");
   const recordButton = document.getElementById("record-button");
   const discardRecordButton = document.getElementById("discard-record-button");
+  const midiButton = document.getElementById("midi-button");
+  const midiFileInput = document.getElementById("midi-file-input");
   const accompanimentModal = document.getElementById("accompaniment-modal");
   const accompanimentForm = document.getElementById("accompaniment-form");
   const accompanimentCancel = document.getElementById("accompaniment-cancel");
@@ -775,6 +803,7 @@
       record: "Rec",
       recording: "Save",
       discardRecording: "Retake",
+      importMidi: "MIDI",
       video: "Video",
       youtubeTitle: "YouTube Practice",
       youtubeFrame: "YouTube Video",
@@ -800,6 +829,8 @@
       invalidToken: "Could not read: {token}. Use 1-7, or accidentals like 5b and 5#.",
       invalidYoutube: "Enter a valid YouTube video link.",
       noRecording: "No notes were recorded.",
+      midiImportError: "Could not read this MIDI file.",
+      midiNoNotes: "No playable notes were found in this MIDI file.",
       instruments: {
         piano: "Piano",
         electric: "E.Piano",
@@ -824,6 +855,7 @@
       record: "录音",
       recording: "保存",
       discardRecording: "废弃重录",
+      importMidi: "MIDI",
       video: "视频",
       youtubeTitle: "YouTube 伴奏练习",
       youtubeFrame: "YouTube 视频",
@@ -849,6 +881,8 @@
       invalidToken: "无法识别：{token}。请使用 1-7，或 5b、5# 这样的写法。",
       invalidYoutube: "请输入有效的 YouTube 视频链接。",
       noRecording: "没有录到音符。",
+      midiImportError: "无法读取这个 MIDI 文件。",
+      midiNoNotes: "这个 MIDI 文件里没有可播放的音符。",
       instruments: {
         piano: "原声钢琴",
         electric: "电钢琴",
@@ -873,6 +907,7 @@
       record: "録音",
       recording: "保存",
       discardRecording: "録り直し",
+      importMidi: "MIDI",
       video: "動画",
       youtubeTitle: "YouTube 練習",
       youtubeFrame: "YouTube 動画",
@@ -898,6 +933,8 @@
       invalidToken: "読み取れません: {token}。1-7、または 5b、5# のように入力してください。",
       invalidYoutube: "有効な YouTube 動画リンクを入力してください。",
       noRecording: "録音された音符がありません。",
+      midiImportError: "この MIDI ファイルを読み取れません。",
+      midiNoNotes: "この MIDI ファイルに再生できる音符がありません。",
       instruments: {
         piano: "ピアノ",
         electric: "E.ピアノ",
@@ -922,6 +959,7 @@
       record: "녹음",
       recording: "저장",
       discardRecording: "다시 녹음",
+      importMidi: "MIDI",
       video: "영상",
       youtubeTitle: "YouTube 연습",
       youtubeFrame: "YouTube 영상",
@@ -947,6 +985,8 @@
       invalidToken: "읽을 수 없음: {token}. 1-7 또는 5b, 5#처럼 입력하세요.",
       invalidYoutube: "유효한 YouTube 영상 링크를 입력하세요.",
       noRecording: "녹음된 음표가 없습니다.",
+      midiImportError: "이 MIDI 파일을 읽을 수 없습니다.",
+      midiNoNotes: "이 MIDI 파일에 재생할 수 있는 음표가 없습니다.",
       instruments: {
         piano: "피아노",
         electric: "E.피아노",
@@ -971,6 +1011,7 @@
       record: "Grabar",
       recording: "Guardar",
       discardRecording: "Regrabar",
+      importMidi: "MIDI",
       video: "Video",
       youtubeTitle: "Práctica con YouTube",
       youtubeFrame: "Video de YouTube",
@@ -996,6 +1037,8 @@
       invalidToken: "No se pudo leer: {token}. Usa 1-7, o alteraciones como 5b y 5#.",
       invalidYoutube: "Introduce un enlace válido de YouTube.",
       noRecording: "No se grabaron notas.",
+      midiImportError: "No se pudo leer este archivo MIDI.",
+      midiNoNotes: "No se encontraron notas reproducibles en este archivo MIDI.",
       instruments: {
         piano: "Piano",
         electric: "E.Piano",
@@ -1036,6 +1079,9 @@
   let isRecording = false;
   let recordingStartTime = 0;
   let recordedNotes = [];
+  let midiPlaybackTimers = [];
+  let midiPlaybackEntries = [];
+  const midiHighlightCounts = new Map();
 
   const activeNotes = new Set();
   const oscMap = new Map();
@@ -1255,6 +1301,223 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function parseMidiFile(arrayBuffer) {
+    const data = new Uint8Array(arrayBuffer);
+    let offset = 0;
+
+    function readString(length) {
+      const value = String.fromCharCode(...data.slice(offset, offset + length));
+      offset += length;
+      return value;
+    }
+
+    function readUint16() {
+      const value = (data[offset] << 8) | data[offset + 1];
+      offset += 2;
+      return value;
+    }
+
+    function readUint32() {
+      const value = ((data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3]) >>> 0;
+      offset += 4;
+      return value;
+    }
+
+    function readVarLenAt(position) {
+      let value = 0;
+      let next = position;
+      let byte = 0;
+      do {
+        byte = data[next];
+        value = (value << 7) | (byte & 0x7f);
+        next += 1;
+      } while (byte & 0x80);
+      return { value, next };
+    }
+
+    if (readString(4) !== "MThd") throw new Error("Missing MIDI header");
+    const headerLength = readUint32();
+    const format = readUint16();
+    const trackCount = readUint16();
+    const division = readUint16();
+    offset += Math.max(0, headerLength - 6);
+    if (format > 1 || (division & 0x8000)) throw new Error("Unsupported MIDI format");
+
+    const ticksPerQuarter = division;
+    const tempoEvents = [{ tick: 0, tempo: 500000 }];
+    const rawNotes = [];
+
+    for (let trackIndex = 0; trackIndex < trackCount; trackIndex += 1) {
+      if (readString(4) !== "MTrk") throw new Error("Missing MIDI track");
+      const trackEnd = offset + readUint32();
+      let tick = 0;
+      let runningStatus = 0;
+      const active = new Map();
+
+      while (offset < trackEnd) {
+        const delta = readVarLenAt(offset);
+        tick += delta.value;
+        offset = delta.next;
+
+        let status = data[offset];
+        if (status < 0x80) {
+          if (!runningStatus) throw new Error("Bad running status");
+          status = runningStatus;
+        } else {
+          offset += 1;
+          if (status < 0xf0) runningStatus = status;
+        }
+
+        if (status === 0xff) {
+          const metaType = data[offset];
+          offset += 1;
+          const lengthInfo = readVarLenAt(offset);
+          const length = lengthInfo.value;
+          offset = lengthInfo.next;
+          if (metaType === 0x51 && length === 3) {
+            tempoEvents.push({
+              tick,
+              tempo: (data[offset] << 16) | (data[offset + 1] << 8) | data[offset + 2],
+            });
+          }
+          offset += length;
+          continue;
+        }
+
+        if (status === 0xf0 || status === 0xf7) {
+          const lengthInfo = readVarLenAt(offset);
+          offset = lengthInfo.next + lengthInfo.value;
+          continue;
+        }
+
+        const eventType = status & 0xf0;
+        const channel = status & 0x0f;
+        const dataOne = data[offset];
+        offset += 1;
+        const hasSecondByte = eventType !== 0xc0 && eventType !== 0xd0;
+        const dataTwo = hasSecondByte ? data[offset] : 0;
+        if (hasSecondByte) offset += 1;
+
+        if (eventType === 0x90 && dataTwo > 0) {
+          const key = channel + ":" + dataOne;
+          if (!active.has(key)) active.set(key, []);
+          active.get(key).push({ tick, channel, midi: dataOne, velocity: dataTwo });
+        } else if (eventType === 0x80 || (eventType === 0x90 && dataTwo === 0)) {
+          const key = channel + ":" + dataOne;
+          const starts = active.get(key);
+          if (starts && starts.length) {
+            const start = starts.shift();
+            rawNotes.push({
+              midi: start.midi,
+              channel: start.channel,
+              velocity: start.velocity,
+              startTick: start.tick,
+              endTick: Math.max(tick, start.tick + 1),
+            });
+          }
+        }
+      }
+
+      offset = trackEnd;
+    }
+
+    tempoEvents.sort((a, b) => a.tick - b.tick);
+
+    function tickToSeconds(tick) {
+      let seconds = 0;
+      let lastTick = 0;
+      let tempo = 500000;
+
+      for (let i = 0; i < tempoEvents.length; i += 1) {
+        const event = tempoEvents[i];
+        if (event.tick > tick) break;
+        seconds += (event.tick - lastTick) * tempo / ticksPerQuarter / 1000000;
+        lastTick = event.tick;
+        tempo = event.tempo;
+      }
+
+      seconds += (tick - lastTick) * tempo / ticksPerQuarter / 1000000;
+      return seconds;
+    }
+
+    return rawNotes
+      .filter((note) => note.midi >= START_MIDI && note.midi < START_MIDI + TOTAL_KEYS)
+      .map((note) => ({
+        midi: note.midi,
+        start: tickToSeconds(note.startTick),
+        duration: Math.max(0.05, tickToSeconds(note.endTick) - tickToSeconds(note.startTick)),
+        velocity: note.velocity,
+      }))
+      .sort((a, b) => a.start - b.start || a.midi - b.midi);
+  }
+
+  function markMidiPlayback(midi, isActive) {
+    const current = midiHighlightCounts.get(midi) || 0;
+    const next = isActive ? current + 1 : Math.max(0, current - 1);
+    if (next) midiHighlightCounts.set(midi, next);
+    else midiHighlightCounts.delete(midi);
+
+    const keyEl = keyboardInner.querySelector('[data-midi="' + midi + '"]');
+    if (keyEl) keyEl.classList.toggle("midi-playing", next > 0);
+  }
+
+  function stopMidiPlayback() {
+    midiPlaybackTimers.forEach((timer) => window.clearTimeout(timer));
+    midiPlaybackTimers = [];
+    midiPlaybackEntries.forEach((entry) => {
+      entry.oscs.forEach((osc) => {
+        try {
+          osc.stop();
+        } catch (error) {
+          // Scheduled oscillator may already be stopped.
+        }
+      });
+    });
+    midiPlaybackEntries = [];
+    midiHighlightCounts.forEach((count, midi) => {
+      const keyEl = keyboardInner.querySelector('[data-midi="' + midi + '"]');
+      if (keyEl) keyEl.classList.remove("midi-playing");
+    });
+    midiHighlightCounts.clear();
+  }
+
+  function scheduleMidiHighlight(midi, startTime, duration) {
+    const startDelay = Math.max(0, (startTime - audioCtx.currentTime) * 1000);
+    const endDelay = Math.max(0, (startTime + duration - audioCtx.currentTime) * 1000);
+    midiPlaybackTimers.push(window.setTimeout(() => markMidiPlayback(midi, true), startDelay));
+    midiPlaybackTimers.push(window.setTimeout(() => markMidiPlayback(midi, false), endDelay));
+  }
+
+  function playImportedMidi(notes) {
+    stopMidiPlayback();
+    ensureAudioForPlayback();
+    const startAt = audioCtx.currentTime + 0.12;
+
+    notes.forEach((note) => {
+      const startTime = startAt + note.start;
+      const oscs = playScheduledNote(note.midi, startTime, note.duration, false);
+      midiPlaybackEntries.push({ oscs });
+      scheduleMidiHighlight(note.midi, startTime, note.duration);
+    });
+  }
+
+  async function importMidiFile(file) {
+    if (!file) return;
+    try {
+      const notes = parseMidiFile(await file.arrayBuffer());
+      if (!notes.length) {
+        accompanimentNotice.textContent = text("midiNoNotes");
+        return;
+      }
+      accompanimentNotice.textContent = "";
+      playImportedMidi(notes);
+    } catch (error) {
+      accompanimentNotice.textContent = text("midiImportError");
+    } finally {
+      midiFileInput.value = "";
+    }
+  }
+
   function updateRecordButton() {
     recordButton.classList.toggle("recording", isRecording);
     recordButton.textContent = isRecording ? text("recording") : text("record");
@@ -1333,6 +1596,7 @@
   function resetAudioContext() {
     oscMap.forEach(stopOscillators);
     oscMap.clear();
+    stopMidiPlayback();
     if (accompanimentLoopTimer) {
       window.clearTimeout(accompanimentLoopTimer);
       accompanimentLoopTimer = null;
@@ -1603,9 +1867,9 @@
     return baseMidi + ((pitchClass - (baseMidi % 12) + 12) % 12);
   }
 
-  function playScheduledNote(midi, startTime, midiDuration = currentMidiDuration()) {
+  function playScheduledNote(midi, startTime, midiDuration = currentMidiDuration(), shouldRecord = true) {
     ensureAudioForPlayback();
-    recordMidiNote(midi, startTime, midiDuration, 1, 86);
+    if (shouldRecord) recordMidiNote(midi, startTime, midiDuration, 1, 86);
 
     if (currentInstrument().id === "solfege") {
       speakSolfege(midi, startTime);
@@ -1845,6 +2109,9 @@
     accompanimentButton.title = text("accompaniment");
     accompanimentButton.setAttribute("aria-label", text("accompaniment"));
     updateRecordButton();
+    midiButton.textContent = text("importMidi");
+    midiButton.title = text("importMidi");
+    midiButton.setAttribute("aria-label", text("importMidi"));
     videoButton.textContent = text("video");
     videoButton.title = text("youtubeTitle");
     videoButton.setAttribute("aria-label", text("youtubeTitle"));
@@ -2146,6 +2413,7 @@
   function onBeforeUnload() {
     oscMap.forEach(stopOscillators);
     oscMap.clear();
+    stopMidiPlayback();
     stopSpeech();
   }
 
@@ -2183,6 +2451,8 @@
   accompanimentButton.addEventListener("click", openAccompanimentDialog);
   recordButton.addEventListener("click", toggleRecording);
   discardRecordButton.addEventListener("click", discardAndRestartRecording);
+  midiButton.addEventListener("click", () => midiFileInput.click());
+  midiFileInput.addEventListener("change", () => importMidiFile(midiFileInput.files && midiFileInput.files[0]));
   accompanimentCancel.addEventListener("click", closeAccompanimentDialog);
   accompanimentModal.addEventListener("pointerdown", (event) => {
     if (event.target === accompanimentModal) closeAccompanimentDialog();
@@ -2246,7 +2516,10 @@
   window.addEventListener("resize", () => requestAnimationFrame(scrollRootToCenter));
   window.addEventListener("focus", () => resumeAudio(true));
   window.addEventListener("pageshow", () => resumeAudio(true));
-  window.addEventListener("pagehide", stopAccompaniment);
+  window.addEventListener("pagehide", () => {
+    stopAccompaniment();
+    stopMidiPlayback();
+  });
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) resumeAudio(true);
   });
