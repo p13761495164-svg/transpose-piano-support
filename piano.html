@@ -793,7 +793,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20260720-cache-v12";
+  const APP_VERSION = "20260720-cache-v13";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
@@ -1179,6 +1179,7 @@
   let audioRecoveryTimer = null;
   const INSTRUMENT_STORAGE_KEY = "transpose-piano-instrument";
   const LANGUAGE_STORAGE_KEY = "transpose-piano-language";
+  const KEY_STORAGE_KEY = "transpose-piano-key";
   const ACCOMPANIMENT_SETTINGS_KEY = "transpose-piano-accompaniment";
 
   function text(key) {
@@ -1235,6 +1236,23 @@
   function saveInstrument(instrumentId) {
     try {
       window.localStorage.setItem(INSTRUMENT_STORAGE_KEY, instrumentId);
+    } catch (error) {
+      // Storage can be unavailable in private browsing; the app should still work.
+    }
+  }
+
+  function readSavedKey() {
+    try {
+      const savedKey = Number(window.localStorage.getItem(KEY_STORAGE_KEY));
+      return Number.isInteger(savedKey) && savedKey >= 0 && savedKey < KEY_LABELS.length ? savedKey : KEY_ORDER[0];
+    } catch (error) {
+      return KEY_ORDER[0];
+    }
+  }
+
+  function saveKey(keyIndex) {
+    try {
+      window.localStorage.setItem(KEY_STORAGE_KEY, String(keyIndex));
     } catch (error) {
       // Storage can be unavailable in private browsing; the app should still work.
     }
@@ -2246,6 +2264,7 @@
 
   function setKey(index) {
     selectedKey = index;
+    saveKey(selectedKey);
 
     Array.from(keySelectorInner.children).forEach((button) => {
       button.classList.toggle("active", Number(button.dataset.keyIndex) === selectedKey);
@@ -2846,7 +2865,7 @@
   applyAccompanimentSettings();
   applyLanguage();
   setInstrument(selectedInstrument);
-  setKey(KEY_ORDER[0]);
+  setKey(readSavedKey());
 })();
 </script>
 </body>
