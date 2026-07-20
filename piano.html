@@ -1291,10 +1291,17 @@
     const midiBytes = buildMidiFile(notes);
     const blob = new Blob([midiBytes], { type: "audio/midi" });
     const url = URL.createObjectURL(blob);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const now = new Date();
+    const timestamp = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+      String(now.getHours()).padStart(2, "0"),
+      String(now.getMinutes()).padStart(2, "0"),
+    ].join("");
     const link = document.createElement("a");
     link.href = url;
-    link.download = "transpose-piano-" + timestamp + ".mid";
+    link.download = "TP" + timestamp + ".mid";
     document.body.appendChild(link);
     link.click();
     link.remove();
