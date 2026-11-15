@@ -702,6 +702,7 @@
     #app.dual-keyboard #keyboard-inner,
     #app.dual-keyboard #keyboard-inner-upper { min-height: 0; }
   @media (orientation: landscape) {
+    .black-key { height: calc((100% - var(--key-top)) * 2 / 3); }
     #app.dual-keyboard #keyboard-scroll-upper { flex-grow: 2; }
     #app.dual-keyboard #keyboard-scroll { flex-grow: 3; }
   }
@@ -807,7 +808,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20261115-cache-v16";
+  const APP_VERSION = "20261115-cache-v17";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
@@ -2164,7 +2165,7 @@
     const top = keyTop();
     const localX = x - rect.left + scroll.scrollLeft - SIDE_PAD;
     const localY = y - rect.top;
-    const innerHeight = rect.height;
+    const blackKeyHeight = scroll.querySelector(".black-key").getBoundingClientRect().height;
 
     for (let i = 0; i < blackKeys.length; i += 1) {
       const key = blackKeys[i];
@@ -2172,7 +2173,7 @@
       if (prevWhiteIndex === -1) continue;
 
       const left = prevWhiteIndex * WHITE_KEY_W + WHITE_KEY_W - BLACK_KEY_W / 2;
-      const height = innerHeight * 0.6;
+      const height = blackKeyHeight;
 
       if (
         localX >= left &&
