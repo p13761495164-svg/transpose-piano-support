@@ -519,7 +519,7 @@
     color: #fff;
   }
 
-  #keyboard-scroll {
+  #keyboard-scroll, #keyboard-scroll-upper {
     flex: 1;
     overflow-x: scroll;
     overflow-y: hidden;
@@ -528,7 +528,7 @@
     touch-action: none;
   }
 
-  #keyboard-inner {
+  #keyboard-inner, #keyboard-inner-upper {
     position: relative;
     height: 100%;
     min-height: 200px;
@@ -691,6 +691,18 @@
     }
 
   }
+  #keyboard-scroll-upper { display: none; scrollbar-width: none; }
+  #keyboard-scroll-upper::-webkit-scrollbar { display: none; }
+  #language-button[aria-pressed="true"] { background: #111; color: #fff; }
+  #language-button svg { width: 24px; height: 24px; }
+  @media (orientation: landscape) {
+    #app.dual-keyboard #piano-area { flex-direction: column; min-height: 0; }
+    #app.dual-keyboard #keyboard-scroll-upper { display: block; border-bottom: 3px solid #999; }
+    #app.dual-keyboard #keyboard-scroll,
+    #app.dual-keyboard #keyboard-scroll-upper { flex: 1 1 0; min-height: 0; }
+    #app.dual-keyboard #keyboard-inner,
+    #app.dual-keyboard #keyboard-inner-upper { min-height: 0; }
+  }
 </style>
 </head>
 <body>
@@ -700,8 +712,7 @@
       <div id="key-selector-inner"></div>
     </div>
     <div id="language-control">
-      <button id="language-button" type="button" title="Language" aria-label="Language">En</button>
-      <div id="language-popover" role="menu" aria-label="Language"></div>
+      <button id="language-button" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="3" width="20" height="7" rx="1"/><path d="M7 3v4m5-4v4m5-4v4"/><rect x="2" y="14" width="20" height="7" rx="1"/><path d="M7 14v4m5-4v4m5-4v4"/></svg></button>
     </div>
     <div id="tools-control">
       <button id="tools-button" type="button" title="功能" aria-label="功能">功能</button>
@@ -742,6 +753,7 @@
   </div>
 
   <div id="piano-area">
+    <div id="keyboard-scroll-upper"><div id="keyboard-inner-upper"></div></div>
     <div id="keyboard-scroll">
       <div id="keyboard-inner"></div>
     </div>
@@ -793,7 +805,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20260720-cache-v14";
+  const APP_VERSION = "20261115-cache-v15";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
@@ -810,7 +822,10 @@
   const keyboardInner = document.getElementById("keyboard-inner");
   const languageControl = document.getElementById("language-control");
   const languageButton = document.getElementById("language-button");
-  const languagePopover = document.getElementById("language-popover");
+  const upperScroll = document.getElementById("keyboard-scroll-upper");
+  const upperInner = document.getElementById("keyboard-inner-upper");
+  let dualKeyboard = false;
+  const landscape = window.matchMedia("(orientation: landscape)");
   const toolsControl = document.getElementById("tools-control");
   const toolsButton = document.getElementById("tools-button");
   const toolsPopover = document.getElementById("tools-popover");
@@ -1178,7 +1193,6 @@
   const pointerState = new Map();
   let audioRecoveryTimer = null;
   const INSTRUMENT_STORAGE_KEY = "transpose-piano-instrument";
-  const LANGUAGE_STORAGE_KEY = "transpose-piano-language";
   const KEY_STORAGE_KEY = "transpose-piano-key";
   const ACCOMPANIMENT_SETTINGS_KEY = "transpose-piano-accompaniment";
 
@@ -1205,23 +1219,8 @@
   }
 
   function readSavedLanguage() {
-    try {
-      const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-      if (LANGUAGES.some((language) => language.id === savedLanguage)) return savedLanguage;
-    } catch (error) {
-      // Ignore storage errors and use the browser language.
-    }
-
     const browserLanguage = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
     return normalizeLanguage(browserLanguage);
-  }
-
-  function saveLanguage(languageId) {
-    try {
-      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, languageId);
-    } catch (error) {
-      // Storage can be unavailable in private browsing; the app should still work.
-    }
   }
 
   function readSavedInstrument() {
@@ -1681,8 +1680,7 @@
     if (next) midiHighlightCounts.set(midi, next);
     else midiHighlightCounts.delete(midi);
 
-    const keyEl = keyboardInner.querySelector('[data-midi="' + midi + '"]');
-    if (keyEl) keyEl.classList.toggle("midi-playing", next > 0);
+    document.querySelectorAll('[data-midi="' + midi + '"]').forEach((keyEl) => keyEl.classList.toggle("midi-playing", next > 0));
   }
 
   function stopMidiPlayback() {
@@ -1699,8 +1697,7 @@
     });
     midiPlaybackEntries = [];
     midiHighlightCounts.forEach((count, midi) => {
-      const keyEl = keyboardInner.querySelector('[data-midi="' + midi + '"]');
-      if (keyEl) keyEl.classList.remove("midi-playing");
+      document.querySelectorAll('[data-midi="' + midi + '"]').forEach((keyEl) => keyEl.classList.remove("midi-playing"));
     });
     midiHighlightCounts.clear();
   }
@@ -2031,10 +2028,9 @@
       activeNotes.delete(midi);
     }
 
-    const keyEl = keyboardInner.querySelector('[data-midi="' + midi + '"]');
-    if (keyEl) {
+    document.querySelectorAll('[data-midi="' + midi + '"]').forEach((keyEl) => {
       keyEl.classList.toggle("active", isActive);
-    }
+    });
   }
 
   function playNote(midi) {
@@ -2161,10 +2157,11 @@
     markActive(midi, false);
   }
 
-  function getMidiAtPoint(x, y) {
-    const rect = keyboardScroll.getBoundingClientRect();
+  function getMidiAtPoint(x, y, scroll = keyboardScroll) {
+    const rect = scroll.getBoundingClientRect();
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return null;
     const top = keyTop();
-    const localX = x - rect.left + keyboardScroll.scrollLeft - SIDE_PAD;
+    const localX = x - rect.left + scroll.scrollLeft - SIDE_PAD;
     const localY = y - rect.top;
     const innerHeight = rect.height;
 
@@ -2197,6 +2194,13 @@
   }
 
   function scrollHighlightedRootToCenter() {
+    if (dualKeyboard && landscape.matches) {
+      [[upperScroll, upperInner, -12], [keyboardScroll, keyboardInner, 12]].forEach(([scroll, inner, offset]) => {
+        const key = inner.querySelector('[data-midi="' + (highlightedRootMidi() + offset) + '"]');
+        if (key) scroll.scrollLeft = Math.max(0, key.offsetLeft + key.offsetWidth / 2 - scroll.clientWidth / 2);
+      });
+      return;
+    }
     const highlightedLabel = keyboardInner.querySelector(".c-label.central");
     const highlightedKey = highlightedLabel ? highlightedLabel.parentElement : null;
     if (highlightedKey) {
@@ -2260,6 +2264,8 @@
       appendRootLabel(el, key.midi);
       keyboardInner.appendChild(el);
     });
+    upperInner.innerHTML = keyboardInner.innerHTML;
+    upperInner.style.width = keyboardInner.style.width;
   }
 
   function setKey(index) {
@@ -2318,17 +2324,11 @@
     });
   }
 
-  function renderLanguageSelector() {
-    languagePopover.innerHTML = "";
-    LANGUAGES.forEach((language) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "language-option";
-      button.dataset.language = language.id;
-      button.textContent = language.label;
-      button.addEventListener("click", () => setLanguage(language.id));
-      languagePopover.appendChild(button);
-    });
+  function updateKeyboardButton() {
+    const labels = { en: "Dual keyboard (landscape)", zh: "双层键盘（横屏）", ja: "2段鍵盤（横向き）", ko: "2단 건반 (가로)", es: "Doble teclado (horizontal)" };
+    languageButton.title = labels[selectedLanguage] || labels.en;
+    languageButton.setAttribute("aria-label", languageButton.title);
+    languageButton.setAttribute("aria-pressed", String(dualKeyboard));
   }
 
   function refreshToneLabels() {
@@ -2348,17 +2348,10 @@
   }
 
   function applyLanguage() {
-    const meta = languageMeta();
     document.documentElement.lang = selectedLanguage === "zh" ? "zh-CN" : selectedLanguage;
     document.title = text("appTitle");
 
-    languageButton.textContent = meta.short;
-    languageButton.title = text("language");
-    languageButton.setAttribute("aria-label", text("language") + ": " + meta.label);
-    languagePopover.setAttribute("aria-label", text("language"));
-    Array.from(languagePopover.children).forEach((button) => {
-      button.classList.toggle("active", button.dataset.language === selectedLanguage);
-    });
+    updateKeyboardButton();
 
     refreshToneLabels();
     toolsButton.textContent = text("tools");
@@ -2399,13 +2392,6 @@
     loopLabel.textContent = text("loop");
     accompanimentCancel.textContent = text("cancel");
     accompanimentForm.querySelector('button[type="submit"]').textContent = text("start");
-  }
-
-  function setLanguage(languageId) {
-    selectedLanguage = LANGUAGES.some((language) => language.id === languageId) ? languageId : "en";
-    saveLanguage(selectedLanguage);
-    applyLanguage();
-    languageControl.classList.remove("open");
   }
 
   function parseMelodyToken(token) {
@@ -2620,8 +2606,10 @@
 
   function onPointerDown(event) {
     event.preventDefault();
+    const scroll = event.currentTarget;
+    scroll.setPointerCapture(event.pointerId);
 
-    const midi = getMidiAtPoint(event.clientX, event.clientY);
+    const midi = getMidiAtPoint(event.clientX, event.clientY, scroll);
     if (midi !== null) {
       pointerMidi.set(event.pointerId, midi);
       playNote(midi);
@@ -2630,7 +2618,8 @@
     pointerState.set(event.pointerId, {
       startX: event.clientX,
       startY: event.clientY,
-      startScroll: keyboardScroll.scrollLeft,
+      startScroll: scroll.scrollLeft,
+      scroll,
       mode: "playing",
     });
   }
@@ -2653,11 +2642,11 @@
     }
 
     if (state.mode === "scrolling") {
-      keyboardScroll.scrollLeft = state.startScroll - dx;
+      state.scroll.scrollLeft = state.startScroll - dx;
       return;
     }
 
-    const midi = getMidiAtPoint(event.clientX, event.clientY);
+    const midi = getMidiAtPoint(event.clientX, event.clientY, state.scroll);
     if (midi === null) return;
 
     const previous = pointerMidi.get(event.pointerId);
@@ -2707,7 +2696,10 @@
 
   languageButton.addEventListener("click", (event) => {
     event.stopPropagation();
-    languageControl.classList.toggle("open");
+    dualKeyboard = !dualKeyboard;
+    app.classList.toggle("dual-keyboard", dualKeyboard);
+    updateKeyboardButton();
+    requestAnimationFrame(scrollHighlightedRootToCenter);
     toneControl.classList.remove("open");
     toolsControl.classList.remove("open");
   });
@@ -2806,11 +2798,17 @@
       toolsControl.classList.remove("open");
     }
   });
-  keyboardScroll.addEventListener("pointerdown", onPointerDown);
-  keyboardScroll.addEventListener("pointermove", onPointerMove);
-  keyboardScroll.addEventListener("pointerup", onPointerUp);
-  keyboardScroll.addEventListener("pointercancel", onPointerUp);
-  keyboardScroll.addEventListener("lostpointercapture", onPointerUp);
+  [keyboardScroll, upperScroll].forEach((scroll) => {
+    scroll.addEventListener("pointerdown", onPointerDown);
+    scroll.addEventListener("pointermove", onPointerMove);
+    scroll.addEventListener("pointerup", onPointerUp);
+    scroll.addEventListener("pointercancel", onPointerUp);
+    scroll.addEventListener("lostpointercapture", onPointerUp);
+  });
+  window.addEventListener("languagechange", () => {
+    selectedLanguage = readSavedLanguage();
+    applyLanguage();
+  });
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("resize", () => requestAnimationFrame(scrollHighlightedRootToCenter));
   window.addEventListener("focus", () => resumeAudio(true));
@@ -2859,7 +2857,6 @@
 
   renderSelector();
   selectedLanguage = readSavedLanguage();
-  renderLanguageSelector();
   renderToneSelector();
   selectedInstrument = readSavedInstrument();
   applyAccompanimentSettings();
