@@ -695,13 +695,15 @@
   #keyboard-scroll-upper::-webkit-scrollbar { display: none; }
   #language-button[aria-pressed="true"] { background: #111; color: #fff; }
   #language-button svg { width: 24px; height: 24px; }
-  @media (orientation: landscape) {
-    #app.dual-keyboard #piano-area { flex-direction: column; min-height: 0; }
-    #app.dual-keyboard #keyboard-scroll-upper { display: block; border-bottom: 3px solid #999; }
+    #app.dual-keyboard #piano-area { flex-direction: column; min-height: 0; gap: 3px; background: #999; }
+    #app.dual-keyboard #keyboard-scroll-upper { display: block; }
     #app.dual-keyboard #keyboard-scroll,
     #app.dual-keyboard #keyboard-scroll-upper { flex: 1 1 0; min-height: 0; }
     #app.dual-keyboard #keyboard-inner,
     #app.dual-keyboard #keyboard-inner-upper { min-height: 0; }
+  @media (orientation: landscape) {
+    #app.dual-keyboard #keyboard-scroll-upper { flex-grow: 2; }
+    #app.dual-keyboard #keyboard-scroll { flex-grow: 3; }
   }
 </style>
 </head>
@@ -805,7 +807,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20261115-cache-v15";
+  const APP_VERSION = "20261115-cache-v16";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
@@ -825,7 +827,6 @@
   const upperScroll = document.getElementById("keyboard-scroll-upper");
   const upperInner = document.getElementById("keyboard-inner-upper");
   let dualKeyboard = false;
-  const landscape = window.matchMedia("(orientation: landscape)");
   const toolsControl = document.getElementById("tools-control");
   const toolsButton = document.getElementById("tools-button");
   const toolsPopover = document.getElementById("tools-popover");
@@ -2194,7 +2195,7 @@
   }
 
   function scrollHighlightedRootToCenter() {
-    if (dualKeyboard && landscape.matches) {
+    if (dualKeyboard) {
       [[upperScroll, upperInner, -12], [keyboardScroll, keyboardInner, 12]].forEach(([scroll, inner, offset]) => {
         const key = inner.querySelector('[data-midi="' + (highlightedRootMidi() + offset) + '"]');
         if (key) scroll.scrollLeft = Math.max(0, key.offsetLeft + key.offsetWidth / 2 - scroll.clientWidth / 2);
@@ -2325,7 +2326,7 @@
   }
 
   function updateKeyboardButton() {
-    const labels = { en: "Dual keyboard (landscape)", zh: "双层键盘（横屏）", ja: "2段鍵盤（横向き）", ko: "2단 건반 (가로)", es: "Doble teclado (horizontal)" };
+    const labels = { en: "Dual keyboard", zh: "双层键盘", ja: "2段鍵盤", ko: "2단 건반", es: "Doble teclado" };
     languageButton.title = labels[selectedLanguage] || labels.en;
     languageButton.setAttribute("aria-label", languageButton.title);
     languageButton.setAttribute("aria-pressed", String(dualKeyboard));
