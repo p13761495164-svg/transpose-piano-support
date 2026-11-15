@@ -701,9 +701,7 @@
     #app.dual-keyboard #keyboard-scroll-upper { flex: 1 1 0; min-height: 0; }
     #app.dual-keyboard #keyboard-inner,
     #app.dual-keyboard #keyboard-inner-upper { min-height: 0; }
-  @media (orientation: landscape) {
-    #app.dual-keyboard .black-key { height: calc((100% - var(--key-top)) * 2 / 5); }
-  }
+  #app.dual-keyboard .black-key { height: calc((100% - var(--key-top)) / 2); }
 </style>
 </head>
 <body>
@@ -806,7 +804,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20261115-cache-v19";
+  const APP_VERSION = "20261115-cache-v20";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
