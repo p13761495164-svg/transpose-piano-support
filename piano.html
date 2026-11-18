@@ -702,6 +702,12 @@
     #app.dual-keyboard #keyboard-inner,
     #app.dual-keyboard #keyboard-inner-upper { min-height: 0; }
   #app.dual-keyboard .black-key { height: calc((100% - var(--key-top)) / 2); }
+  #app.dual-keyboard #keyboard-inner-upper { --pressed-white: #93c5fd; --pressed-black: #2563eb; }
+  #app.dual-keyboard #keyboard-inner { --pressed-white: #fdba74; --pressed-black: #c2410c; }
+  #app.dual-keyboard .white-key.active:not(.midi-playing) { background: var(--pressed-white); }
+  #app.dual-keyboard .black-key.active:not(.midi-playing) { background: var(--pressed-black); }
+  #app.dual-keyboard .black-key.active:not(.midi-playing) .c-label { color: #fff; }
+  #app.dual-keyboard .white-key.active:not(.midi-playing) .c-label:not(.central) { color: #374151; }
 </style>
 </head>
 <body>
@@ -804,7 +810,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20261115-cache-v20";
+  const APP_VERSION = "20261118-cache-v21";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
