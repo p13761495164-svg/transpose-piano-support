@@ -702,8 +702,8 @@
     #app.dual-keyboard #keyboard-inner,
     #app.dual-keyboard #keyboard-inner-upper { min-height: 0; }
   #app.dual-keyboard .black-key { height: calc((100% - var(--key-top)) / 2); }
-  #app.dual-keyboard #keyboard-inner-upper { --pressed-white: #93c5fd; --pressed-black: #2563eb; }
-  #app.dual-keyboard #keyboard-inner { --pressed-white: #fdba74; --pressed-black: #c2410c; }
+  #app.dual-keyboard [data-press-source="upper"] { --pressed-white: #93c5fd; --pressed-black: #2563eb; }
+  #app.dual-keyboard [data-press-source="lower"] { --pressed-white: #fdba74; --pressed-black: #c2410c; }
   #app.dual-keyboard .white-key.active:not(.midi-playing) { background: var(--pressed-white); }
   #app.dual-keyboard .black-key.active:not(.midi-playing) { background: var(--pressed-black); }
   #app.dual-keyboard .black-key.active:not(.midi-playing) .c-label { color: #fff; }
@@ -810,7 +810,7 @@
 
 <script>
 (() => {
-  const APP_VERSION = "20261118-cache-v21";
+  const APP_VERSION = "20261118-cache-v22";
   const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
   const KEY_LABELS = ["C", "C#/D♭", "D", "D#/E♭", "E", "F", "F#/G♭", "G", "G#/A♭", "A", "A#/B♭", "B"];
   const KEY_ORDER = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
@@ -2025,7 +2025,7 @@
     return [tone, body, edge];
   }
 
-  function markActive(midi, isActive) {
+  function markActive(midi, isActive, source = "lower") {
     if (isActive) {
       activeNotes.add(midi);
     } else {
@@ -2033,11 +2033,13 @@
     }
 
     document.querySelectorAll('[data-midi="' + midi + '"]').forEach((keyEl) => {
+      if (isActive) keyEl.dataset.pressSource = source;
+      else delete keyEl.dataset.pressSource;
       keyEl.classList.toggle("active", isActive);
     });
   }
 
-  function playNote(midi) {
+  function playNote(midi, source = "lower") {
     ensureAudioForPlayback();
 
     const previous = oscMap.get(midi);
@@ -2055,7 +2057,7 @@
         markActive(midi, false);
       }, 720);
       oscMap.set(midi, { oscs, tid });
-      markActive(midi, true);
+      markActive(midi, true, source);
       return;
     }
 
@@ -2095,7 +2097,7 @@
     }, (instrument.decay + 0.2) * 1000);
 
     oscMap.set(midi, { oscs, tid });
-    markActive(midi, true);
+    markActive(midi, true, source);
   }
 
   function midiForPitchClass(pitchClass, baseMidi = 48) {
@@ -2616,7 +2618,7 @@
     const midi = getMidiAtPoint(event.clientX, event.clientY, scroll);
     if (midi !== null) {
       pointerMidi.set(event.pointerId, midi);
-      playNote(midi);
+      playNote(midi, scroll === upperScroll ? "upper" : "lower");
     }
 
     pointerState.set(event.pointerId, {
@@ -2656,7 +2658,7 @@
     const previous = pointerMidi.get(event.pointerId);
     if (previous !== undefined && midi !== previous) {
       stopNote(previous);
-      playNote(midi);
+      playNote(midi, state.scroll === upperScroll ? "upper" : "lower");
       pointerMidi.set(event.pointerId, midi);
     }
   }
